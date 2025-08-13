@@ -2,7 +2,6 @@ package com.zcw.voya.core;
 
 import com.zcw.voya.ai.model.HtmlCodeResult;
 import com.zcw.voya.ai.model.MultiFileCodeResult;
-
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -11,6 +10,7 @@ import java.util.regex.Pattern;
  * 提供静态方法解析不同类型的代码内容
  *
  */
+@Deprecated
 public class CodeParser {
 
     private static final Pattern HTML_CODE_PATTERN = Pattern.compile("```html\\s*\\n([\\s\\S]*?)```", Pattern.CASE_INSENSITIVE);
