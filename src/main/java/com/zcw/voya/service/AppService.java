@@ -7,8 +7,10 @@ import com.zcw.voya.model.dto.app.AppAddRequest;
 import com.zcw.voya.model.dto.app.AppQueryRequest;
 import com.zcw.voya.model.dto.app.AppUpdateRequest;
 import com.zcw.voya.model.entity.App;
+import com.zcw.voya.model.entity.User;
 import com.zcw.voya.model.vo.AppVO;
 import jakarta.servlet.http.HttpServletRequest;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -96,4 +98,12 @@ public interface AppService extends IService<App> {
      */
     Page<AppVO> listFeaturedAppVOByPage(AppQueryRequest appQueryRequest);
 
+    /**
+     * 聊天生成代码
+     * @param appId 应用id
+     * @param message prompt
+     * @param loginUser 登录用户
+     * @return 流
+     */
+    Flux<String> chatToGenCode(Long appId, String message, User loginUser);
 }

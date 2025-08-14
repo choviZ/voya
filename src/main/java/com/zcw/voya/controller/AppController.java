@@ -1,5 +1,6 @@
 package com.zcw.voya.controller;
 
+import cn.hutool.json.JSONUtil;
 import com.mybatisflex.core.paginate.Page;
 import com.zcw.voya.annotation.AuthCheck;
 import com.zcw.voya.common.BaseResponse;
@@ -12,12 +13,20 @@ import com.zcw.voya.model.dto.app.AppAddRequest;
 import com.zcw.voya.model.dto.app.AppQueryRequest;
 import com.zcw.voya.model.dto.app.AppUpdateRequest;
 import com.zcw.voya.model.entity.App;
+import com.zcw.voya.model.entity.User;
 import com.zcw.voya.model.vo.AppVO;
 import com.zcw.voya.service.AppService;
+import com.zcw.voya.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.util.Map;
 
 /**
  * 应用 控制层
@@ -30,12 +39,45 @@ public class AppController {
 
     @Resource
     private AppService appService;
+    @Resource
+    private UserService userService;
+
+    /**
+     * 聊天生成代码（SSE）
+     *
+     * @param appId   应用id
+     * @param message 初始prompt
+     * @param request 请求
+     * @return SSE流
+     */
+    @GetMapping(value = "/chat/gen/code", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<String>> chatToGenCode(@RequestParam Long appId, @RequestParam String message, HttpServletRequest request) {
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用id无效");
+        ThrowUtils.throwIf(message == null || message.isEmpty(), ErrorCode.PARAMS_ERROR, "初始prompt不能为空");
+        User loginUser = userService.getLoginUser(request);
+        Flux<String> flux = appService.chatToGenCode(appId, message, loginUser);
+        return flux
+                .map(chunk -> {
+                    // 包装成json
+                    Map<String, String> map = Map.of("d", chunk);
+                    String jsonStr = JSONUtil.toJsonStr(map);
+                    return ServerSentEvent.<String>builder()
+                            .data(jsonStr)
+                            .build();
+                }).concatWith(Mono.just(
+                        // 发送结束事件
+                        ServerSentEvent.<String>builder()
+                                .data("")
+                                .event("done")
+                                .build()
+                ));
+    }
 
     /**
      * 创建应用
      *
      * @param appAddRequest 创建应用请求
-     * @param request 请求
+     * @param request       请求
      * @return 应用id
      */
     @PostMapping("/add")
@@ -48,7 +90,7 @@ public class AppController {
      * 更新应用
      *
      * @param appUpdateRequest 更新应用请求
-     * @param request 请求
+     * @param request          请求
      * @return 是否成功
      */
     @PostMapping("/update")
@@ -61,7 +103,7 @@ public class AppController {
      * 删除应用
      *
      * @param deleteRequest 删除请求
-     * @param request 请求
+     * @param request       请求
      * @return 是否成功
      */
     @PostMapping("/delete")
@@ -74,7 +116,7 @@ public class AppController {
     /**
      * 获取应用详情VO
      *
-     * @param id 应用id
+     * @param id      应用id
      * @param request 请求
      * @return 应用详情VO
      */
@@ -89,7 +131,7 @@ public class AppController {
      * 分页查询应用列表
      *
      * @param appQueryRequest 查询请求
-     * @param request 请求
+     * @param request         请求
      * @return 应用VO分页列表
      */
     @PostMapping("/list/page/vo")
@@ -113,7 +155,7 @@ public class AppController {
     /**
      * 获取应用详情
      *
-     * @param id 应用id
+     * @param id      应用id
      * @param request 请求
      * @return 应用详情
      */
