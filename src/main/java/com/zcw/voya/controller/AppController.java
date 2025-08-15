@@ -21,7 +21,6 @@ import com.zcw.voya.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpRequest;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
@@ -87,6 +86,13 @@ public class AppController {
                                 .event("done")
                                 .build()
                 ));
+    }
+
+    @PostMapping("/my/list/page/vo")
+    @AuthCheck(mustRole = UserConstant.USER_LOGIN_STATE)
+    public BaseResponse<Page<AppVO>> getMyAppList(HttpServletRequest request,@RequestBody AppQueryRequest appQueryRequest){
+        Page<AppVO> myAppVoList = appService.getMyAppVoList(request, appQueryRequest);
+        return ResultUtils.success(myAppVoList);
     }
 
     /**

@@ -21,19 +21,21 @@ import com.zcw.voya.model.entity.App;
 import com.zcw.voya.model.entity.User;
 import com.zcw.voya.model.vo.AppVO;
 import com.zcw.voya.mapper.AppMapper;
+import com.zcw.voya.model.vo.UserVO;
 import com.zcw.voya.service.AppService;
 import com.zcw.voya.service.UserService;
 import io.micrometer.common.util.StringUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
-import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -48,6 +50,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private UserService userService;
     @Resource
     private AiCodeGeneratorFacade aiCodeGeneratorFacade;
+    @Autowired
+    private AppMapper appMapper;
 
     @Override
     public long createApp(AppAddRequest appAddRequest, HttpServletRequest request) {
@@ -230,7 +234,15 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         boolean updated = this.updateById(updateApp);
         ThrowUtils.throwIf(!updated, ErrorCode.SYSTEM_ERROR, "更新应用部署信息失败");
         // 返回可访问的URL
-        return String.format("%s/%s/",AppConstant.CODE_DEPLOY_HOST,deployKey);
+        return String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
+    }
+
+    @Override
+    public Page<AppVO> getMyAppVoList(HttpServletRequest request, AppQueryRequest appQueryRequest) {
+        User loginUser = userService.getLoginUser(request);
+        QueryWrapper queryWrapper = new QueryWrapper().eq(App::getUserId, loginUser.getId());
+        Page<App> page = this.page(new Page<App>(appQueryRequest.getCurrent(), appQueryRequest.getPageSize()),queryWrapper);
+        return getPageVo(page);
     }
 
     // region 工具方法
@@ -249,7 +261,17 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         if (appList == null || appList.isEmpty()) {
             return new ArrayList<>();
         }
-        return appList.stream().map(this::getAppVO).collect(Collectors.toList());
+        List<AppVO> appVOList = appList.stream().map(this::getAppVO).collect(Collectors.toList());
+        // 关系用户映射
+        List<Long> userIdList = appList.stream().map(App::getUserId).distinct().toList();
+        Map<Long, List<User>> userMap = userService.listByIds(userIdList).stream().collect(Collectors.groupingBy(User::getId));
+        // 补充信息
+        appVOList.forEach(appVO -> {
+            UserVO userVO = userService.getUserVO(userMap.get(appVO.getUserId()).getFirst());
+            // 关联用户信息
+            appVO.setUser(userVO);
+        });
+        return appVOList;
     }
 
     @Override
