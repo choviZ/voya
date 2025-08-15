@@ -1,10 +1,14 @@
 package com.zcw.voya.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.io.IORuntimeException;
+import cn.hutool.core.util.RandomUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.zcw.voya.ai.model.enums.CodeGenTypeEnum;
+import com.zcw.voya.constant.AppConstant;
 import com.zcw.voya.constant.UserConstant;
 import com.zcw.voya.core.AiCodeGeneratorFacade;
 import com.zcw.voya.exception.BusinessException;
@@ -19,11 +23,14 @@ import com.zcw.voya.model.vo.AppVO;
 import com.zcw.voya.mapper.AppMapper;
 import com.zcw.voya.service.AppService;
 import com.zcw.voya.service.UserService;
+import io.micrometer.common.util.StringUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
+import java.io.File;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +42,7 @@ import java.util.stream.Collectors;
  * @author zcw
  */
 @Service
-public class AppServiceImpl extends ServiceImpl<AppMapper,App> implements AppService {
+public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppService {
 
     @Resource
     private UserService userService;
@@ -52,7 +59,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper,App> implements AppSer
         // 创建应用
         App app = App.builder()
                 // 应用名称是提示词前12位
-                .appName(initPrompt.substring(0,Math.min(initPrompt.length(), 12)))
+                .appName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)))
                 .initPrompt(initPrompt)
                 .userId(loginUser.getId())
                 // TODO 暂时设置多文件生成
@@ -187,7 +194,43 @@ public class AppServiceImpl extends ServiceImpl<AppMapper,App> implements AppSer
         CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getEnumByValue(codeGenType);
         ThrowUtils.throwIf(codeGenTypeEnum == null, ErrorCode.PARAMS_ERROR, "不支持的代码生成类型");
         // 调用ai生成代码
-        return aiCodeGeneratorFacade.generateCodeStream(message,codeGenTypeEnum,appId);
+        return aiCodeGeneratorFacade.generateCodeStream(message, codeGenTypeEnum, appId);
+    }
+
+    @Override
+    public String appDeploy(Long appId, User loginUser) {
+        // 权限检查
+        App app = this.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        ThrowUtils.throwIf(!app.getUserId().equals(loginUser.getId()), ErrorCode.NO_AUTH_ERROR, "无权限部署该应用");
+        // 是否已有部署key
+        String deployKey = app.getDeployKey();
+        if (StringUtils.isBlank(deployKey)) {
+            deployKey = RandomUtil.randomString(6);
+        }
+        String codeGenType = app.getCodeGenType();
+        String sourceDirName = codeGenType + "_" + appId;
+        String sourceDirPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + sourceDirName;
+        // 检查目录是否存在
+        File file = new File(sourceDirPath);
+        if (!file.exists() || !file.isDirectory()) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "应用代码不存在，请先生成");
+        }
+        File distFile = new File(AppConstant.CODE_DEPLOY_ROOT_DIR + File.separator + deployKey);
+        try {
+            FileUtil.copyContent(file, distFile, true);
+        } catch (IORuntimeException e) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, e.getMessage());
+        }
+        // 更新部署信息
+        App updateApp = new App();
+        updateApp.setId(app.getId());
+        updateApp.setDeployKey(deployKey);
+        updateApp.setDeployedTime(LocalDateTime.now());
+        boolean updated = this.updateById(updateApp);
+        ThrowUtils.throwIf(!updated, ErrorCode.SYSTEM_ERROR, "更新应用部署信息失败");
+        // 返回可访问的URL
+        return String.format("%s/%s/",AppConstant.CODE_DEPLOY_HOST,deployKey);
     }
 
     // region 工具方法
@@ -233,9 +276,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper,App> implements AppSer
 
     private Page<AppVO> getPageVo(Page<App> appPage) {
         Page<AppVO> voPage = new Page<>(
-            appPage.getPageNumber(),
-            appPage.getPageSize(),
-            appPage.getTotalRow()
+                appPage.getPageNumber(),
+                appPage.getPageSize(),
+                appPage.getTotalRow()
         );
         voPage.setRecords(getAppVOList(appPage.getRecords()));
         return voPage;

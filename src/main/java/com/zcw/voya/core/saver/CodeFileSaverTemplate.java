@@ -4,9 +4,9 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import com.zcw.voya.ai.model.enums.CodeGenTypeEnum;
+import com.zcw.voya.constant.AppConstant;
 import com.zcw.voya.exception.ErrorCode;
 import com.zcw.voya.exception.ThrowUtils;
-
 import java.io.File;
 
 
@@ -14,11 +14,6 @@ import java.io.File;
  * 保存代码文件的模板
  */
 public abstract class CodeFileSaverTemplate<T> {
-
-    /**
-     * 文件保存根目录
-     */
-    private static final String FILE_SAVE_ROOT_DIR = System.getProperty("user.dir") + "/tmp/code_output";
 
     /**
      * 模板方法
@@ -50,7 +45,7 @@ public abstract class CodeFileSaverTemplate<T> {
     protected final String buildUniqueDir(Long appId) {
         CodeGenTypeEnum codeGenType = getCodeGenType();
         String uniqueDirName = StrUtil.format("{}_{}", codeGenType.getValue(), appId);
-        String dirPath = FILE_SAVE_ROOT_DIR + File.separator + uniqueDirName;
+        String dirPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + uniqueDirName;
         FileUtil.mkdir(dirPath);
         return dirPath;
     }

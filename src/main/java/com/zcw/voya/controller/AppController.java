@@ -10,6 +10,7 @@ import com.zcw.voya.constant.UserConstant;
 import com.zcw.voya.exception.ErrorCode;
 import com.zcw.voya.exception.ThrowUtils;
 import com.zcw.voya.model.dto.app.AppAddRequest;
+import com.zcw.voya.model.dto.app.AppDeployRequest;
 import com.zcw.voya.model.dto.app.AppQueryRequest;
 import com.zcw.voya.model.dto.app.AppUpdateRequest;
 import com.zcw.voya.model.entity.App;
@@ -20,6 +21,7 @@ import com.zcw.voya.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpRequest;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
@@ -41,6 +43,20 @@ public class AppController {
     private AppService appService;
     @Resource
     private UserService userService;
+
+    /**
+     * 应用部署
+     * @param appDeployRequest 应用部署请求
+     * @return 可访问的地址
+     */
+    @PostMapping("/deploy")
+    public BaseResponse<String> appDeploy(@RequestBody @Valid AppDeployRequest appDeployRequest, HttpServletRequest httpRequest){
+        ThrowUtils.throwIf(appDeployRequest == null,ErrorCode.PARAMS_ERROR);
+        Long appId = appDeployRequest.getAppId();
+        User loginUser = userService.getLoginUser(httpRequest);
+        String deployUrl = appService.appDeploy(appId, loginUser);
+        return ResultUtils.success(deployUrl);
+    }
 
     /**
      * 聊天生成代码（SSE）
