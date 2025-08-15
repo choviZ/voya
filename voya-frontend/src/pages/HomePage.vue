@@ -3,9 +3,10 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
-import { addApp, listMyAppVoByPage, listGoodAppVoByPage } from '@/api/appController'
-import { getDeployUrl } from '@/config/env'
+import { addApp, listMyAppVoByPage, listGoodAppVoByPage, chatToGenCode } from '@/api/appController'
+import { getDeployUrl, API_BASE_URL } from '@/config/env'
 import AppCard from '@/components/AppCard.vue'
+import request from '@/request'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
@@ -58,16 +59,17 @@ const createApp = async () => {
 
     if (res.data.code === 0 && res.data.data) {
       message.success('应用创建成功')
-      // 跳转到对话页面，确保ID是字符串类型
+      // 获取创建的应用ID并跳转到对话页面
+      // 添加new=1参数标识这是新创建的应用
       const appId = String(res.data.data)
-      await router.push(`/app/chat/${appId}`)
+      await router.push(`/app/chat/${appId}?new=1`)
     } else {
       message.error('创建失败：' + res.data.message)
+      creating.value = false
     }
   } catch (error) {
     console.error('创建应用失败：', error)
     message.error('创建失败，请重试')
-  } finally {
     creating.value = false
   }
 }
