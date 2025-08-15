@@ -58,6 +58,14 @@ public interface AppService extends IService<App> {
     App getAppById(long id, HttpServletRequest request);
 
     /**
+     * 获取我的应用列表（用户）
+     * @param request 请求
+     * @param appQueryRequest 查询请求
+     * @return
+     */
+    Page<AppVO> getMyAppVoList(HttpServletRequest request, AppQueryRequest appQueryRequest);
+
+    /**
      * 获取应用VO
      *
      * @param app 应用实体

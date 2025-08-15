@@ -216,7 +216,7 @@ import { message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
 import {
   getAppVoById,
-  deployApp as deployAppApi,
+  appDeploy as deployAppApi,
   deleteApp as deleteAppApi,
 } from '@/api/appController'
 import { listAppChatHistory } from '@/api/chatHistoryController'

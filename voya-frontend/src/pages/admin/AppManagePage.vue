@@ -92,7 +92,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { listAppVoByPageByAdmin, deleteAppByAdmin, updateAppByAdmin } from '@/api/appController'
+import { adminListAppVoByPage, adminDeleteApp, adminUpdateApp } from '@/api/appController'
 import { CODE_GEN_TYPE_OPTIONS, formatCodeGenType } from '@/utils/codeGenTypes'
 import { formatTime } from '@/utils/time'
 import UserInfo from '@/components/UserInfo.vue'
@@ -160,14 +160,14 @@ const total = ref(0)
 
 // 搜索条件
 const searchParams = reactive<API.AppQueryRequest>({
-  pageNum: 1,
+  current: 1,
   pageSize: 10,
 })
 
 // 获取数据
 const fetchData = async () => {
   try {
-    const res = await listAppVoByPageByAdmin({
+    const res = await adminListAppVoByPage({
       ...searchParams,
     })
     if (res.data.data) {
@@ -190,7 +190,7 @@ onMounted(() => {
 // 分页参数
 const pagination = computed(() => {
   return {
-    current: searchParams.pageNum ?? 1,
+    current: searchParams.current ?? 1,
     pageSize: searchParams.pageSize ?? 10,
     total: total.value,
     showSizeChanger: true,
@@ -200,7 +200,7 @@ const pagination = computed(() => {
 
 // 表格变化处理
 const doTableChange = (page: { current: number; pageSize: number }) => {
-  searchParams.pageNum = page.current
+  searchParams.current = page.current
   searchParams.pageSize = page.pageSize
   fetchData()
 }
@@ -208,7 +208,7 @@ const doTableChange = (page: { current: number; pageSize: number }) => {
 // 搜索
 const doSearch = () => {
   // 重置页码
-  searchParams.pageNum = 1
+  searchParams.current = 1
   fetchData()
 }
 
@@ -224,9 +224,10 @@ const toggleFeatured = async (app: API.AppVO) => {
   const newPriority = app.priority === 99 ? 0 : 99
 
   try {
-    const res = await updateAppByAdmin({
+    const res = await adminUpdateApp({
       id: app.id,
       priority: newPriority,
+      appName: app.appName ?? ""
     })
 
     if (res.data.code === 0) {
@@ -247,7 +248,7 @@ const deleteApp = async (id: number | undefined) => {
   if (!id) return
 
   try {
-    const res = await deleteAppByAdmin({ id })
+    const res = await adminDeleteApp({ id })
     if (res.data.code === 0) {
       message.success('删除成功')
       // 刷新数据
