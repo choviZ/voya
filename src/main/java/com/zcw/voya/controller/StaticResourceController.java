@@ -23,7 +23,7 @@ public class StaticResourceController {
      * 提供静态资源访问，支持目录重定向 【浏览AI生成效果】
      * 访问格式：http://localhost:8080/static/{dirName}[/{fileName}]
      */
-    @GetMapping("/{dirname}/**")
+    @GetMapping("/{deployKey}/**")
     public ResponseEntity<Resource> serveStaticResource(
             @PathVariable String deployKey,
             HttpServletRequest request) {

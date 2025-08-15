@@ -62,6 +62,7 @@ public class AiCodeGeneratorFacade {
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "请选择代码生成类型");
         }
+        log.info("即将开始生成，类型为:{}",codeGenTypeEnum.getValue());
         return switch (codeGenTypeEnum) {
             case HTML -> generateHtmlCodeStream(prompt,appId);
             case MULTI_FILE -> generateMultiFileCodeStream(prompt,appId);
@@ -90,6 +91,7 @@ public class AiCodeGeneratorFacade {
      * @return
      */
     private Flux<String> processStreamCode(Flux<String> flux, CodeGenTypeEnum codeGenTypeEnum,String prompt,Long appId) {
+        log.info("开始生成代码：{}", prompt);
         StringBuilder builder = new StringBuilder();
         // 收集生成结果
         return flux

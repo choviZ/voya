@@ -74,6 +74,17 @@ public class UserController {
     }
 
     /**
+     * 退出登录
+     * @param request 请求
+     * @return 是否成功
+     */
+    @PostMapping("/logout")
+    public BaseResponse<Boolean> userLogout(HttpServletRequest request) {
+        boolean result = userService.userLogout(request);
+        return ResultUtils.success(result);
+    }
+
+    /**
      * 获取当前登录用户
      * @param request 请求
      * @return 登录用户信息
