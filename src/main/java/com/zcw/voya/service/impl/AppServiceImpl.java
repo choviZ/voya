@@ -4,6 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.IORuntimeException;
 import cn.hutool.core.util.RandomUtil;
+import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
@@ -19,19 +20,22 @@ import com.zcw.voya.model.dto.app.AppQueryRequest;
 import com.zcw.voya.model.dto.app.AppUpdateRequest;
 import com.zcw.voya.model.entity.App;
 import com.zcw.voya.model.entity.User;
+import com.zcw.voya.model.enums.ChatHistoryMessageTypeEnum;
 import com.zcw.voya.model.vo.AppVO;
 import com.zcw.voya.mapper.AppMapper;
 import com.zcw.voya.model.vo.UserVO;
 import com.zcw.voya.service.AppService;
+import com.zcw.voya.service.ChatHistoryService;
 import com.zcw.voya.service.UserService;
 import io.micrometer.common.util.StringUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,14 +48,15 @@ import java.util.stream.Collectors;
  * @author zcw
  */
 @Service
+@Slf4j
 public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppService {
 
     @Resource
     private UserService userService;
     @Resource
     private AiCodeGeneratorFacade aiCodeGeneratorFacade;
-    @Autowired
-    private AppMapper appMapper;
+    @Resource
+    private ChatHistoryService chatHistoryService;
 
     @Override
     public long createApp(AppAddRequest appAddRequest, HttpServletRequest request) {
@@ -197,9 +202,58 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         String codeGenType = app.getCodeGenType();
         CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getEnumByValue(codeGenType);
         ThrowUtils.throwIf(codeGenTypeEnum == null, ErrorCode.PARAMS_ERROR, "不支持的代码生成类型");
+        // 保存用户消息
+        boolean saved = chatHistoryService.addChatHistory(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
+        ThrowUtils.throwIf(!saved, ErrorCode.OPERATION_ERROR, "保存用户消息失败");
         // 调用ai生成代码
-        return aiCodeGeneratorFacade.generateCodeStream(message, codeGenTypeEnum, appId);
+        Flux<String> flux = aiCodeGeneratorFacade.generateCodeStream(message, codeGenTypeEnum, appId);
+        // 收集AI响应的内容
+        StringBuilder builder = new StringBuilder();
+        return flux
+                .map(chunk -> {
+                    builder.append(chunk);
+                    return chunk;
+                })
+                .doOnComplete(() -> {
+                    // 响应完成，保存AI响应内容
+                    String completeResponse = builder.toString();
+                    if (StrUtil.isNotBlank(completeResponse)) {
+                        chatHistoryService.addChatHistory(appId, completeResponse, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
+                    }
+                }).doOnError(error -> {
+                    // 如果响应错误同样保存记录
+                    String errorMessage = error.getMessage();
+                    chatHistoryService.addChatHistory(appId, errorMessage, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
+                });
     }
+
+    /**
+     * 删除应用时关联删除对话历史
+     *
+     * @param id 应用ID
+     * @return 是否成功
+     */
+    @Override
+    public boolean removeById(Serializable id) {
+        if (id == null) {
+            return false;
+        }
+        // 转换为 Long 类型
+        long appId = Long.parseLong(id.toString());
+        if (appId <= 0) {
+            return false;
+        }
+        // 先删除关联的对话历史
+        try {
+            chatHistoryService.deleteById(appId);
+        } catch (Exception e) {
+            // 记录日志但不阻止应用删除
+            log.error("删除应用关联对话历史失败: {}", e.getMessage());
+        }
+        // 删除应用
+        return super.removeById(id);
+    }
+
 
     @Override
     public String appDeploy(Long appId, User loginUser) {
@@ -241,7 +295,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     public Page<AppVO> getMyAppVoList(HttpServletRequest request, AppQueryRequest appQueryRequest) {
         User loginUser = userService.getLoginUser(request);
         QueryWrapper queryWrapper = new QueryWrapper().eq(App::getUserId, loginUser.getId());
-        Page<App> page = this.page(new Page<App>(appQueryRequest.getCurrent(), appQueryRequest.getPageSize()),queryWrapper);
+        Page<App> page = this.page(new Page<App>(appQueryRequest.getCurrent(), appQueryRequest.getPageSize()), queryWrapper);
         return getPageVo(page);
     }
 
@@ -253,6 +307,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         }
         AppVO appVO = new AppVO();
         BeanUtil.copyProperties(app, appVO);
+        appVO.setUser(userService.getUserVO(userService.getById(app.getUserId())));
         return appVO;
     }
 
