@@ -265,6 +265,7 @@ const loadingHistory = ref(false)
 const hasMoreHistory = ref(false)
 const lastCreateTime = ref<string>()
 const historyLoaded = ref(false)
+const chatHistories = ref<API.ChatHistory[]>([])
 
 // 预览相关
 const previewUrl = ref('')
@@ -319,10 +320,19 @@ const loadChatHistory = async (isLoadMore = false) => {
     }
     const res = await listAppChatHistory(params)
     if (res.data.code === 0 && res.data.data) {
-      const chatHistories = res.data.data.records || []
-      if (chatHistories.length > 0) {
-        // 将对话历史转换为消息格式，并按时间正序排列（老消息在前）
-        const historyMessages: Message[] = chatHistories
+      const histories = res.data.data.records || []
+      if (histories.length > 0) {
+        // 保存聊天历史记录
+        if (isLoadMore) {
+          // 加载更多时，将历史消息添加到开头
+          chatHistories.value = [...histories, ...chatHistories.value]
+        } else {
+          // 初始加载，直接设置消息列表
+          chatHistories.value = histories
+        }
+        
+        // 将对话历史转换为消息格式，并按时间升序排列（老消息在前）
+        const historyMessages: Message[] = histories
             .map((chat) => ({
               type: (chat.messageType === 'user' ? 'user' : 'ai') as 'user' | 'ai',
               content: chat.message || '',
@@ -337,9 +347,9 @@ const loadChatHistory = async (isLoadMore = false) => {
           messages.value = historyMessages
         }
         // 更新游标
-        lastCreateTime.value = chatHistories[chatHistories.length - 1]?.createTime
+        lastCreateTime.value = histories[0]?.createTime
         // 检查是否还有更多历史
-        hasMoreHistory.value = chatHistories.length === 10
+        hasMoreHistory.value = histories.length === 10
       } else {
         hasMoreHistory.value = false
       }
@@ -411,12 +421,12 @@ const fetchAppInfo = async () => {
         updatePreview()
       }
       // 检查是否需要自动发送初始提示词
-      // 如果是新创建的应用，无论是否有对话历史，都自动发送初始提示词
-      const isNewApp = route.query.new === '1';
+      // 移除之前页面url的new参数判断，如果是自己的app，并且没有对话历史，才自动发送初始提示词
       if (
           appInfo.value.initPrompt &&
           isOwner.value &&
-          ((messages.value.length === 0 && historyLoaded.value) || isNewApp)
+          messages.value.length === 0 && 
+          historyLoaded.value
       ) {
         await sendInitialMessage(appInfo.value.initPrompt)
       }

@@ -97,6 +97,12 @@ declare namespace API {
     message?: string
   }
 
+  type BaseResponsePageChatHistory = {
+    code?: number
+    data?: PageChatHistory
+    message?: string
+  }
+
   type BaseResponsePageUserVO = {
     code?: number
     data?: PageUserVO
@@ -119,6 +125,30 @@ declare namespace API {
     code?: number
     data?: UserVO
     message?: string
+  }
+
+  type ChatHistory = {
+    id?: number
+    message?: string
+    messageType?: string
+    appId?: number
+    userId?: number
+    createTime?: string
+    updateTime?: string
+    isDelete?: number
+  }
+
+  type ChatHistoryQueryRequest = {
+    current?: number
+    pageSize?: number
+    sortField?: string
+    sortOrder?: string
+    id?: number
+    message?: string
+    messageType?: string
+    appId?: number
+    userId?: number
+    lastCreateTime?: string
   }
 
   type chatToGenCodeParams = {
@@ -146,6 +176,12 @@ declare namespace API {
     id: number
   }
 
+  type listAppChatHistoryParams = {
+    appId: number
+    pageSize?: number
+    lastCreateTime?: string
+  }
+
   type LoginUserVO = {
     id?: number
     userAccount?: string
@@ -166,6 +202,15 @@ declare namespace API {
     optimizeCountQuery?: boolean
   }
 
+  type PageChatHistory = {
+    records?: ChatHistory[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+    optimizeCountQuery?: boolean
+  }
+
   type PageUserVO = {
     records?: UserVO[]
     pageNumber?: number
@@ -176,50 +221,6 @@ declare namespace API {
   }
 
   type ServerSentEventString = true
-
-  type ChatHistory = {
-    id?: number
-    appId?: number
-    userId?: number
-    message?: string
-    messageType?: string
-    createTime?: string
-    updateTime?: string
-  }
-
-  type ChatHistoryQueryRequest = {
-    current?: number
-    pageSize?: number
-    pageNum?: number
-    sortField?: string
-    sortOrder?: string
-    id?: number
-    appId?: number
-    userId?: number
-    message?: string
-    messageType?: string
-  }
-
-  type listAppChatHistoryParams = {
-    appId: number
-    pageSize?: number
-    lastCreateTime?: string
-  }
-
-  type BaseResponsePageChatHistory = {
-    code?: number
-    data?: PageChatHistory
-    message?: string
-  }
-
-  type PageChatHistory = {
-    records?: ChatHistory[]
-    pageNumber?: number
-    pageSize?: number
-    totalPage?: number
-    totalRow?: number
-    optimizeCountQuery?: boolean
-  }
 
   type serveStaticResourceParams = {
     deployKey: string
