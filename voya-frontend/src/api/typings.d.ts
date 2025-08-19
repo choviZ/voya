@@ -1,37 +1,49 @@
 declare namespace API {
-  type AppAddRequest = {
-    initPrompt?: string
-  }
-
-  type AppAdminUpdateRequest = {
-    id?: number
-    appName?: string
-    cover?: string
-    priority?: number
-  }
-
-  type AppDeployRequest = {
-    appId?: number
-  }
-
-  type AppQueryRequest = {
-    pageNum?: number
-    pageSize?: number
-    sortField?: string
-    sortOrder?: string
+  type App = {
     id?: number
     appName?: string
     cover?: string
     initPrompt?: string
     codeGenType?: string
     deployKey?: string
+    deployedTime?: string
     priority?: number
     userId?: number
+    createTime?: string
+    updateTime?: string
+    isDelete?: number
+  }
+
+  type AppAddRequest = {
+    initPrompt: string
+  }
+
+  type AppDeployRequest = {
+    appId: number
+  }
+
+  type AppQueryRequest = {
+    current?: number
+    pageSize?: number
+    sortField?: string
+    sortOrder?: string
+    id?: number
+    appName?: string
+    userId?: number
+    codeGenType?: string
+    deployKey?: string
+    priority?: number
   }
 
   type AppUpdateRequest = {
-    id?: number
-    appName?: string
+    id: number
+    appName: string
+    cover?: string
+    initPrompt?: string
+    codeGenType?: string
+    deployKey?: string
+    deployedTime?: string
+    priority?: number
   }
 
   type AppVO = {
@@ -44,9 +56,15 @@ declare namespace API {
     deployedTime?: string
     priority?: number
     userId?: number
+    user?: UserVO
     createTime?: string
     updateTime?: string
-    user?: UserVO
+  }
+
+  type BaseResponseApp = {
+    code?: number
+    data?: App
+    message?: string
   }
 
   type BaseResponseAppVO = {
@@ -121,7 +139,7 @@ declare namespace API {
   }
 
   type ChatHistoryQueryRequest = {
-    pageNum?: number
+    current?: number
     pageSize?: number
     sortField?: string
     sortOrder?: string
@@ -142,11 +160,7 @@ declare namespace API {
     id?: number
   }
 
-  type downloadAppCodeParams = {
-    appId: number
-  }
-
-  type getAppVOByIdByAdminParams = {
+  type getAppByIdParams = {
     id: number
   }
 
@@ -227,20 +241,20 @@ declare namespace API {
   }
 
   type UserAddRequest = {
-    userName?: string
-    userAccount?: string
+    userName: string
+    userAccount: string
     userAvatar?: string
     userProfile?: string
     userRole?: string
   }
 
   type UserLoginRequest = {
-    userAccount?: string
-    userPassword?: string
+    userAccount: string
+    userPassword: string
   }
 
   type UserQueryRequest = {
-    pageNum?: number
+    current?: number
     pageSize?: number
     sortField?: string
     sortOrder?: string
@@ -252,9 +266,9 @@ declare namespace API {
   }
 
   type UserRegisterRequest = {
-    userAccount?: string
-    userPassword?: string
-    checkPassword?: string
+    userAccount: string
+    userPassword: string
+    checkPassword: string
   }
 
   type UserUpdateRequest = {
