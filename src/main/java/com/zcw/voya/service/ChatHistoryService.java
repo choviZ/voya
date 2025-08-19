@@ -6,6 +6,7 @@ import com.mybatisflex.core.service.IService;
 import com.zcw.voya.model.dto.chat.ChatHistoryQueryRequest;
 import com.zcw.voya.model.entity.ChatHistory;
 import com.zcw.voya.model.entity.User;
+import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 
 import java.time.LocalDateTime;
 
@@ -28,6 +29,8 @@ public interface ChatHistoryService extends IService<ChatHistory> {
     boolean addChatHistory(Long appId, String message, String messageType, Long userId);
 
     Page<ChatHistory> listChatHistoryByPage(Long appId, int pageSize, LocalDateTime lastCreateTime, User loginUser);
+
+    int loadHistoryToMemory(Long appId, MessageWindowChatMemory chatMemory, int maxMessages);
 
     /**
      * 删除对话历史

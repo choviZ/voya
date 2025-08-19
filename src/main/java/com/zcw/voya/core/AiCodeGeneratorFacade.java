@@ -1,6 +1,7 @@
 package com.zcw.voya.core;
 
 import com.zcw.voya.ai.AiCodeGeneratorService;
+import com.zcw.voya.ai.AiCodeGeneratorServiceFactory;
 import com.zcw.voya.ai.model.HtmlCodeResult;
 import com.zcw.voya.ai.model.MultiFileCodeResult;
 import com.zcw.voya.ai.model.enums.CodeGenTypeEnum;
@@ -23,7 +24,7 @@ import java.io.File;
 public class AiCodeGeneratorFacade {
 
     @Resource
-    private AiCodeGeneratorService aiCodeGeneratorService;
+    private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
 
     /**
      * 统一入口：根据类型生成代码并保存
@@ -33,6 +34,7 @@ public class AiCodeGeneratorFacade {
      * @return
      */
     public File generateCode(String prompt, CodeGenTypeEnum codeGenTypeEnum,Long appId) {
+        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "请选择代码生成类型");
         }
@@ -73,11 +75,13 @@ public class AiCodeGeneratorFacade {
     }
 
     private Flux<String> generateMultiFileCodeStream(String prompt,Long appId) {
+        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
         Flux<String> flux = aiCodeGeneratorService.generateMultiFileCodeStream(prompt);
         return processStreamCode(flux, CodeGenTypeEnum.MULTI_FILE, prompt,appId);
     }
 
     private Flux<String> generateHtmlCodeStream(String prompt,Long appId) {
+        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
         Flux<String> flux = aiCodeGeneratorService.generateHtmlCodeStream(prompt);
         return processStreamCode(flux, CodeGenTypeEnum.HTML, prompt,appId);
     }
