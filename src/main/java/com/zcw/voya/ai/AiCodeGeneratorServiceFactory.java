@@ -2,8 +2,13 @@ package com.zcw.voya.ai;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.zcw.voya.ai.model.enums.CodeGenTypeEnum;
+import com.zcw.voya.ai.tools.FileWriteTool;
+import com.zcw.voya.exception.BusinessException;
+import com.zcw.voya.exception.ErrorCode;
 import com.zcw.voya.service.ChatHistoryService;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
+import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
@@ -21,7 +26,9 @@ public class AiCodeGeneratorServiceFactory {
     @Resource
     private ChatModel chatModel;
     @Resource
-    private StreamingChatModel streamingChatModel;
+    private StreamingChatModel openAiStreamingChatModel;
+    @Resource
+    private StreamingChatModel reasoningStreamingChatModel;
     @Resource
     private ChatHistoryService chatHistoryService;
     @Resource
@@ -34,7 +41,7 @@ public class AiCodeGeneratorServiceFactory {
      * - 写入后 30 分钟过期
      * - 访问后 10 分钟过期
      */
-    private final Cache<Long, AiCodeGeneratorService> serviceCache = Caffeine.newBuilder()
+    private final Cache<String, AiCodeGeneratorService> serviceCache = Caffeine.newBuilder()
             .maximumSize(1000)
             .expireAfterWrite(Duration.ofMinutes(30))
             .expireAfterAccess(Duration.ofMinutes(10))
@@ -47,13 +54,24 @@ public class AiCodeGeneratorServiceFactory {
      * 根据 appId 获取服务（带缓存）
      */
     public AiCodeGeneratorService getAiCodeGeneratorService(long appId) {
-        return serviceCache.get(appId, this::createAiCodeGeneratorService);
+        return getAiCodeGeneratorService(appId,CodeGenTypeEnum.HTML);
+    }
+
+    /**
+     * 根据 appId及生成类型 获取服务（带缓存）
+     */
+    public AiCodeGeneratorService getAiCodeGeneratorService(long appId,CodeGenTypeEnum genTypeEnum) {
+        String cacheKey = genTypeEnum + "_" + appId;
+        return serviceCache.get(cacheKey, key ->createAiCodeGeneratorService(appId,genTypeEnum));
     }
 
     /**
      * 创建新的 AI 服务实例
+     *
+     * @param appId       appId
+     * @param genTypeEnum 生成类型
      */
-    private AiCodeGeneratorService createAiCodeGeneratorService(long appId) {
+    private AiCodeGeneratorService createAiCodeGeneratorService(long appId, CodeGenTypeEnum genTypeEnum) {
         log.info("为 appId: {} 创建新的 AI 服务实例", appId);
         // 根据 appId 构建独立的对话记忆
         MessageWindowChatMemory chatMemory = MessageWindowChatMemory
@@ -64,11 +82,27 @@ public class AiCodeGeneratorServiceFactory {
                 .build();
         // 加载对话历史到对话记忆中
         chatHistoryService.loadHistoryToMemory(appId, chatMemory, 20);
-        return AiServices.builder(AiCodeGeneratorService.class)
-                .chatModel(chatModel)
-                .streamingChatModel(streamingChatModel)
-                .chatMemory(chatMemory)
-                .build();
+        return switch (genTypeEnum) {
+            // 普通项目用默认模型
+            case HTML, MULTI_FILE -> AiServices.builder(AiCodeGeneratorService.class)
+                    .chatModel(chatModel)
+                    .streamingChatModel(openAiStreamingChatModel)
+                    .chatMemory(chatMemory)
+                    .build();
+            // Vue 项目用推理模型
+            case VUE_PROJECT -> AiServices.builder(AiCodeGeneratorService.class)
+                    .chatModel(chatModel)
+                    .streamingChatModel(reasoningStreamingChatModel)
+                    .chatMemoryProvider(memoryId -> chatMemory)
+                    // 添加工具
+                    .tools(new FileWriteTool())
+                    // 幻觉工具名称处理（调用了不存在的工具）
+                    .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
+                            toolExecutionRequest, "Error:no tool called " + toolExecutionRequest.name()
+                    ))
+                    .build();
+            default -> throw new BusinessException(ErrorCode.PARAMS_ERROR, "不支持的生成类型");
+        };
     }
 
 }

@@ -27,7 +27,7 @@ public class AiCodeGeneratorFacade {
     private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
 
     /**
-     * 统一入口：根据类型生成代码并保存
+     * 统一入口：根据类型生成代码并保存（阻塞）
      *
      * @param prompt
      * @param codeGenTypeEnum
@@ -68,18 +68,43 @@ public class AiCodeGeneratorFacade {
         return switch (codeGenTypeEnum) {
             case HTML -> generateHtmlCodeStream(prompt,appId);
             case MULTI_FILE -> generateMultiFileCodeStream(prompt,appId);
+            case VUE_PROJECT -> generateVueProjectStream(prompt,appId);
             default -> {
                 throw new IllegalArgumentException("不支持的代码生成类型");
             }
         };
     }
 
+    /**
+     * 生成Vue项目代码流
+     * @param prompt
+     * @param appId
+     * @return
+     */
+    private Flux<String> generateVueProjectStream(String prompt, Long appId) {
+        AiCodeGeneratorService service = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId, CodeGenTypeEnum.VUE_PROJECT);
+        Flux<String> flux = service.generateVueProjectCodeStream(appId, prompt);
+        return processStreamCode(flux, CodeGenTypeEnum.VUE_PROJECT, prompt,appId);
+    }
+
+    /**
+     * 生成多文件代码流
+     * @param prompt
+     * @param appId
+     * @return
+     */
     private Flux<String> generateMultiFileCodeStream(String prompt,Long appId) {
         AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
         Flux<String> flux = aiCodeGeneratorService.generateMultiFileCodeStream(prompt);
         return processStreamCode(flux, CodeGenTypeEnum.MULTI_FILE, prompt,appId);
     }
 
+    /**
+     * 生成HTML代码流
+     * @param prompt
+     * @param appId
+     * @return
+     */
     private Flux<String> generateHtmlCodeStream(String prompt,Long appId) {
         AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
         Flux<String> flux = aiCodeGeneratorService.generateHtmlCodeStream(prompt);
