@@ -4,7 +4,6 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.IORuntimeException;
 import cn.hutool.core.util.RandomUtil;
-import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
@@ -12,6 +11,7 @@ import com.zcw.voya.ai.model.enums.CodeGenTypeEnum;
 import com.zcw.voya.constant.AppConstant;
 import com.zcw.voya.constant.UserConstant;
 import com.zcw.voya.core.AiCodeGeneratorFacade;
+import com.zcw.voya.core.handler.StreamHandlerExecutor;
 import com.zcw.voya.exception.BusinessException;
 import com.zcw.voya.exception.ErrorCode;
 import com.zcw.voya.exception.ThrowUtils;
@@ -57,6 +57,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private AiCodeGeneratorFacade aiCodeGeneratorFacade;
     @Resource
     private ChatHistoryService chatHistoryService;
+    @Resource
+    private StreamHandlerExecutor streamHandlerExecutor;
 
     @Override
     public long createApp(AppAddRequest appAddRequest, HttpServletRequest request) {
@@ -207,24 +209,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         ThrowUtils.throwIf(!saved, ErrorCode.OPERATION_ERROR, "保存用户消息失败");
         // 调用ai生成代码
         Flux<String> flux = aiCodeGeneratorFacade.generateCodeStream(message, codeGenTypeEnum, appId);
-        // 收集AI响应的内容
-        StringBuilder builder = new StringBuilder();
-        return flux
-                .map(chunk -> {
-                    builder.append(chunk);
-                    return chunk;
-                })
-                .doOnComplete(() -> {
-                    // 响应完成，保存AI响应内容
-                    String completeResponse = builder.toString();
-                    if (StrUtil.isNotBlank(completeResponse)) {
-                        chatHistoryService.addChatHistory(appId, completeResponse, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
-                    }
-                }).doOnError(error -> {
-                    // 如果响应错误同样保存记录
-                    String errorMessage = error.getMessage();
-                    chatHistoryService.addChatHistory(appId, errorMessage, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
-                });
+        // 收集AI响应的内容,并保存对话记录
+        return streamHandlerExecutor.doExecute(flux, chatHistoryService, appId, loginUser, codeGenTypeEnum);
     }
 
     /**
