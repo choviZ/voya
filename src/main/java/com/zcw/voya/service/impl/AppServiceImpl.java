@@ -149,7 +149,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                 .initPrompt(initPrompt)
                 .userId(loginUser.getId())
                 // TODO 暂时设置多文件生成
-                .codeGenType(CodeGenTypeEnum.MULTI_FILE.getValue())
+                .codeGenType(CodeGenTypeEnum.VUE_PROJECT.getValue())
                 .createTime(LocalDateTime.now())
                 .updateTime(LocalDateTime.now())
                 .priority(0)

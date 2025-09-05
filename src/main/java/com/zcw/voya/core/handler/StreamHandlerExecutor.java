@@ -6,6 +6,7 @@ import com.zcw.voya.service.ChatHistoryService;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
+import jakarta.annotation.Resource;
 
 /**
  * 流处理器执行器
@@ -13,6 +14,9 @@ import reactor.core.publisher.Flux;
  */
 @Component
 public class StreamHandlerExecutor {
+
+    @Resource
+    private JsonMessageStreamHandler jsonMessageStreamHandler;
 
     /**
      * 执行流处理器
@@ -26,7 +30,7 @@ public class StreamHandlerExecutor {
     public Flux<String> doExecute(Flux<String> originFlux, ChatHistoryService chatHistoryService, long appId, User loginUser, CodeGenTypeEnum codeGenTypeEnum) {
         return switch (codeGenTypeEnum){
             // vue工程-使用json消息流处理器
-            case VUE_PROJECT -> new JsonMessageStreamHandler().handle(originFlux, chatHistoryService, appId, loginUser);
+            case VUE_PROJECT -> jsonMessageStreamHandler.handle(originFlux, chatHistoryService, appId, loginUser);
             // 其他类型-使用简单文本消息流处理器
             case HTML,MULTI_FILE -> new SimpleTextStreamHandler().handler(originFlux, chatHistoryService, appId, loginUser);
         };

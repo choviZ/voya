@@ -90,8 +90,7 @@ public class AiCodeGeneratorFacade {
     private Flux<String> generateVueProjectStream(String prompt, Long appId) {
         AiCodeGeneratorService service = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId, CodeGenTypeEnum.VUE_PROJECT);
         TokenStream tokenStream = service.generateVueProjectCodeStream(appId, prompt);
-        Flux<String> flux = processTokenStream(tokenStream);
-        return processStreamCode(flux, CodeGenTypeEnum.VUE_PROJECT, prompt, appId);
+        return processTokenStream(tokenStream);
     }
 
     /**
@@ -135,7 +134,7 @@ public class AiCodeGeneratorFacade {
      * @return
      */
     private Flux<String> generateMultiFileCodeStream(String prompt, Long appId) {
-        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
+        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId,CodeGenTypeEnum.MULTI_FILE);
         Flux<String> flux = aiCodeGeneratorService.generateMultiFileCodeStream(prompt);
         return processStreamCode(flux, CodeGenTypeEnum.MULTI_FILE, prompt, appId);
     }
