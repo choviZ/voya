@@ -40,4 +40,13 @@ knife4j:
   setting:
     language: zh_cn
 
+# COS
+cos:
+  client:
+    host: your-custom-domain.com
+    secretId: your-secret-id
+    secretKey: your-secret-key
+    region: ap-shanghai
+    bucket: your-bucket-name
+
 

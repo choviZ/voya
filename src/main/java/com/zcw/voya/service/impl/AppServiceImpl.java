@@ -27,6 +27,7 @@ import com.zcw.voya.mapper.AppMapper;
 import com.zcw.voya.model.vo.UserVO;
 import com.zcw.voya.service.AppService;
 import com.zcw.voya.service.ChatHistoryService;
+import com.zcw.voya.service.ScreenShotService;
 import com.zcw.voya.service.UserService;
 import io.micrometer.common.util.StringUtils;
 import jakarta.annotation.Resource;
@@ -62,6 +63,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private StreamHandlerExecutor streamHandlerExecutor;
     @Resource
     private VueProjectBuilder vueProjectBuilder;
+    @Resource
+    private ScreenShotService screenShotService;
 
     @Override
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
@@ -124,6 +127,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         } catch (IORuntimeException e) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, e.getMessage());
         }
+        // 异步构建应用封面
+        String appDeployUrl = AppConstant.CODE_DEPLOY_HOST + "/" + deployKey;
+        generateAppScreenshotAsync(appId, appDeployUrl);
         // 更新部署信息
         App updateApp = new App();
         updateApp.setId(app.getId());
@@ -158,6 +164,28 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         ThrowUtils.throwIf(!saveResult, ErrorCode.OPERATION_ERROR, "创建应用失败");
         return app.getId();
     }
+
+    /**
+     * 异步生成应用截图并更新封面
+     *
+     * @param appId  应用ID
+     * @param appUrl 应用访问URL
+     */
+    @Override
+    public void generateAppScreenshotAsync(Long appId, String appUrl) {
+        // 使用虚拟线程异步执行
+        Thread.startVirtualThread(() -> {
+            // 调用截图服务生成截图并上传
+            String screenshotUrl = screenShotService.saveAndUpload(appUrl);
+            // 更新应用封面字段
+            App updateApp = new App();
+            updateApp.setId(appId);
+            updateApp.setCover(screenshotUrl);
+            boolean updated = this.updateById(updateApp);
+            ThrowUtils.throwIf(!updated, ErrorCode.OPERATION_ERROR, "更新应用封面字段失败");
+        });
+    }
+
 
     @Override
     public boolean updateApp(AppUpdateRequest appUpdateRequest, HttpServletRequest request) {
