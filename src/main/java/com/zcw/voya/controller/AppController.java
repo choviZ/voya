@@ -6,7 +6,9 @@ import com.zcw.voya.annotation.AuthCheck;
 import com.zcw.voya.common.BaseResponse;
 import com.zcw.voya.common.DeleteRequest;
 import com.zcw.voya.common.ResultUtils;
+import com.zcw.voya.constant.AppConstant;
 import com.zcw.voya.constant.UserConstant;
+import com.zcw.voya.exception.BusinessException;
 import com.zcw.voya.exception.ErrorCode;
 import com.zcw.voya.exception.ThrowUtils;
 import com.zcw.voya.model.dto.app.AppAddRequest;
@@ -17,9 +19,11 @@ import com.zcw.voya.model.entity.App;
 import com.zcw.voya.model.entity.User;
 import com.zcw.voya.model.vo.AppVO;
 import com.zcw.voya.service.AppService;
+import com.zcw.voya.service.ProjectDownloadService;
 import com.zcw.voya.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
@@ -27,6 +31,7 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.io.File;
 import java.util.Map;
 
 /**
@@ -42,6 +47,8 @@ public class AppController {
     private AppService appService;
     @Resource
     private UserService userService;
+    @Resource
+    private ProjectDownloadService projectDownloadService;
 
     /**
      * 应用部署
@@ -86,6 +93,34 @@ public class AppController {
                                 .event("done")
                                 .build()
                 ));
+    }
+
+    /**
+     * 下载应用代码
+     * @param appId 应用id
+     * @param request 请求
+     * @param response 响应
+     */
+    @GetMapping("/download/{appId}")
+    public void downloadAppCode(@PathVariable Long appId, HttpServletRequest request, HttpServletResponse response){
+        // 基础校验
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用id无效");
+        // 查询应用信息
+        App app = appService.getById(appId);
+        User loginUser = userService.getLoginUser(request);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        ThrowUtils.throwIf(!app.getUserId().equals(loginUser.getId()), ErrorCode.NO_AUTH_ERROR, "无权限操作该应用");
+        // 构建代码目录
+        String codeGenType = app.getCodeGenType();
+        String sourceDirName = codeGenType + "_" + appId;
+        String sourceDirPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + sourceDirName;
+        // 检查目录是否存在
+        File sourceDir = new File(sourceDirPath);
+        if (!sourceDir.exists() || !sourceDir.isDirectory()) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "应用代码不存在，请先生成");
+        }
+        // 下载
+        projectDownloadService.downLoadProjectAsZpi(sourceDirPath,String.valueOf(appId),response);
     }
 
     @PostMapping("/my/list/page/vo")

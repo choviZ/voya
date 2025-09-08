@@ -16,6 +16,18 @@ spring:
       port: 6379
       password:
       ttl: 3600
+  # session 配置
+  session:
+    store-type: redis
+    # session 30days timeout
+    timeout: 2592000
+server:
+  port: 8080
+  servlet:
+    # cookie 30days timeout
+    session:
+      cookie:
+        max-age: 2592000
 
 # springdoc-openapi
 springdoc:
@@ -27,5 +39,14 @@ knife4j:
   enable: true
   setting:
     language: zh_cn
+
+# COS
+cos:
+  client:
+    host: your-custom-domain.com
+    secretId: your-secret-id
+    secretKey: your-secret-key
+    region: ap-shanghai
+    bucket: your-bucket-name
 
 

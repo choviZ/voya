@@ -31,6 +31,13 @@ public interface AppService extends IService<App> {
     long createApp(AppAddRequest appAddRequest, HttpServletRequest request);
 
     /**
+     * 异步生成应用截图
+     * @param appId 应用id
+     * @param appUrl 应用部署url
+     */
+    void generateAppScreenshotAsync(Long appId, String appUrl);
+
+    /**
      * 更新应用
      *
      * @param appUpdateRequest 更新应用请求
