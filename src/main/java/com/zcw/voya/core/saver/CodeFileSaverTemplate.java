@@ -36,7 +36,7 @@ public abstract class CodeFileSaverTemplate<T> {
      * @param result
      */
     protected void validateInput(T result) {
-        ThrowUtils.throwIf(result == null, ErrorCode.PARAMS_ERROR,"代码生产结果对象为空");
+        ThrowUtils.throwIf(result == null, ErrorCode.PARAMS_ERROR,"代码生成结果对象为空");
     }
 
     /**
