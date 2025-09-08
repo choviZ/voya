@@ -7,6 +7,7 @@ import cn.hutool.core.util.RandomUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
+import com.zcw.voya.ai.CodeGenTypeRoutingService;
 import com.zcw.voya.ai.model.enums.CodeGenTypeEnum;
 import com.zcw.voya.constant.AppConstant;
 import com.zcw.voya.constant.UserConstant;
@@ -65,6 +66,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private VueProjectBuilder vueProjectBuilder;
     @Resource
     private ScreenShotService screenShotService;
+    @Resource
+    private CodeGenTypeRoutingService codeGenTypeRoutingService;
 
     @Override
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
@@ -148,14 +151,16 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         String initPrompt = appAddRequest.getInitPrompt();
         // 获取当前登录用户
         User loginUser = userService.getLoginUser(request);
+        // 路由选择生成类型
+        CodeGenTypeEnum codeGenTypeEnum = codeGenTypeRoutingService.routeCodeGenType(initPrompt);
+        ThrowUtils.throwIf(codeGenTypeEnum == null, ErrorCode.PARAMS_ERROR, "不支持的代码生成类型");
         // 创建应用
         App app = App.builder()
                 // 应用名称是提示词前12位
                 .appName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)))
                 .initPrompt(initPrompt)
                 .userId(loginUser.getId())
-                // TODO 暂时设置多文件生成
-                .codeGenType(CodeGenTypeEnum.VUE_PROJECT.getValue())
+                .codeGenType(codeGenTypeEnum.getValue())
                 .createTime(LocalDateTime.now())
                 .updateTime(LocalDateTime.now())
                 .priority(0)

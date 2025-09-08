@@ -24,7 +24,7 @@ import java.time.Duration;
 public class AiCodeGeneratorServiceFactory {
 
     @Resource
-    private ChatModel chatModel;
+    private ChatModel openAiChatModel;
     @Resource
     private StreamingChatModel openAiStreamingChatModel;
     @Resource
@@ -54,15 +54,15 @@ public class AiCodeGeneratorServiceFactory {
      * 根据 appId 获取服务（带缓存）
      */
     public AiCodeGeneratorService getAiCodeGeneratorService(long appId) {
-        return getAiCodeGeneratorService(appId,CodeGenTypeEnum.HTML);
+        return getAiCodeGeneratorService(appId, CodeGenTypeEnum.HTML);
     }
 
     /**
      * 根据 appId及生成类型 获取服务（带缓存）
      */
-    public AiCodeGeneratorService getAiCodeGeneratorService(long appId,CodeGenTypeEnum genTypeEnum) {
+    public AiCodeGeneratorService getAiCodeGeneratorService(long appId, CodeGenTypeEnum genTypeEnum) {
         String cacheKey = genTypeEnum + "_" + appId;
-        return serviceCache.get(cacheKey, key ->createAiCodeGeneratorService(appId,genTypeEnum));
+        return serviceCache.get(cacheKey, key -> createAiCodeGeneratorService(appId, genTypeEnum));
     }
 
     /**
@@ -85,13 +85,13 @@ public class AiCodeGeneratorServiceFactory {
         return switch (genTypeEnum) {
             // 普通项目用默认模型
             case HTML, MULTI_FILE -> AiServices.builder(AiCodeGeneratorService.class)
-                    .chatModel(chatModel)
+                    .chatModel(openAiChatModel)
                     .streamingChatModel(openAiStreamingChatModel)
                     .chatMemory(chatMemory)
                     .build();
             // Vue 项目用推理模型
             case VUE_PROJECT -> AiServices.builder(AiCodeGeneratorService.class)
-                    .chatModel(chatModel)
+                    .chatModel(openAiChatModel)
                     .streamingChatModel(reasoningStreamingChatModel)
                     .chatMemoryProvider(memoryId -> chatMemory)
                     // 添加工具
