@@ -3,7 +3,7 @@ package com.zcw.voya.ai;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.zcw.voya.ai.model.enums.CodeGenTypeEnum;
-import com.zcw.voya.ai.tools.FileWriteTool;
+import com.zcw.voya.ai.tools.*;
 import com.zcw.voya.exception.BusinessException;
 import com.zcw.voya.exception.ErrorCode;
 import com.zcw.voya.service.ChatHistoryService;
@@ -95,7 +95,13 @@ public class AiCodeGeneratorServiceFactory {
                     .streamingChatModel(reasoningStreamingChatModel)
                     .chatMemoryProvider(memoryId -> chatMemory)
                     // 添加工具
-                    .tools(new FileWriteTool())
+                    .tools(
+                            new FileWriteTool(),
+                            new FileReadTool(),
+                            new FileModifyTool(),
+                            new FileDeleteTool(),
+                            new FileDirReadTool()
+                    )
                     // 幻觉工具名称处理（调用了不存在的工具）
                     .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                             toolExecutionRequest, "Error:no tool called " + toolExecutionRequest.name()
