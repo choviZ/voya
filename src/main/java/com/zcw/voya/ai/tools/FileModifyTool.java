@@ -6,6 +6,7 @@ import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolMemoryId;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -18,6 +19,7 @@ import java.nio.file.StandardOpenOption;
  * 支持 AI 通过工具调用的方式修改文件内容
  */
 @Slf4j
+@Component
 public class FileModifyTool extends BaseTool {
 
     @Tool("修改文件内容，用新内容替换指定的旧内容")
@@ -60,7 +62,7 @@ public class FileModifyTool extends BaseTool {
 
     @Override
     public String getToolName() {
-        return "fileModify";
+        return "modifyFile";
     }
 
     @Override
@@ -73,6 +75,6 @@ public class FileModifyTool extends BaseTool {
         String relativeFilePath = arguments.getStr("relativeFilePath");
         String oldContent = arguments.getStr("oldContent");
         String newContent = arguments.getStr("newContent");
-        return String.format("🔧%s 修改：%s 为 %s", getToolName(), oldContent, newContent);
+        return String.format("%s 修改：%s 为 %s", getDisplayName(), oldContent, newContent);
     }
 }
