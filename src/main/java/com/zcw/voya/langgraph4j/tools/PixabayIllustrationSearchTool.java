@@ -32,7 +32,7 @@ public class PixabayIllustrationSearchTool {
     private String apiKey;
 
     @Tool("搜索插画图片，用于网站美化和装饰")
-    public List<ImageResource> searchIllustrations(@P("搜索关键词") String query) {
+    public List<ImageResource> pixabaySearchIllustrations(@P("搜索关键词") String query) {
         List<ImageResource> imageResources = new ArrayList<>();
         // 构建请求参数
         HttpRequest request = HttpRequest.get(PIXABAY_IMAGE_API_URL)
