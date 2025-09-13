@@ -1,5 +1,6 @@
 package com.zcw.voya.langgraph4j;
 
+import com.zcw.voya.ai.model.enums.CodeGenTypeEnum;
 import com.zcw.voya.exception.BusinessException;
 import com.zcw.voya.exception.ErrorCode;
 import com.zcw.voya.langgraph4j.node.*;
@@ -9,6 +10,7 @@ import org.bsc.langgraph4j.CompiledGraph;
 import org.bsc.langgraph4j.GraphRepresentation;
 import org.bsc.langgraph4j.GraphStateException;
 import org.bsc.langgraph4j.NodeOutput;
+import org.bsc.langgraph4j.action.AsyncEdgeAction;
 import org.bsc.langgraph4j.prebuilt.MessagesState;
 import org.bsc.langgraph4j.prebuilt.MessagesStateGraph;
 
@@ -16,6 +18,7 @@ import java.util.Map;
 
 import static org.bsc.langgraph4j.StateGraph.END;
 import static org.bsc.langgraph4j.StateGraph.START;
+import static org.bsc.langgraph4j.action.AsyncEdgeAction.edge_async;
 
 @Slf4j
 public class CodeGenWorkflow {
@@ -37,7 +40,14 @@ public class CodeGenWorkflow {
                     .addEdge("image_collector", "prompt_enhancer")
                     .addEdge("prompt_enhancer", "router")
                     .addEdge("router", "code_generator")
-                    .addEdge("code_generator", "project_builder")
+                    // 条件边，不是vue项目则跳过构建节点
+                    .addConditionalEdges("code_generator",
+                            edge_async(this::needBuild),
+                            Map.of(
+                                    "build", "project_builder", // 需要构建的情况
+                                    "skip_build", END // 跳过构建
+                            )
+                    )
                     .addEdge("project_builder", END)
                     // 编译工作流
                     .compile();
@@ -76,5 +86,20 @@ public class CodeGenWorkflow {
         }
         log.info("代码生成工作流执行完成！");
         return finalContext;
+    }
+
+    /**
+     * 判断是否需要构建
+     * @param state 状态
+     * @return 构建 / 跳过构建
+     */
+    private String needBuild(MessagesState<String> state) {
+        // 获取上下文
+        WorkflowContext context = WorkflowContext.getContext(state);
+        CodeGenTypeEnum generationType = context.getGenerationType();
+        if (generationType.getValue().equals(CodeGenTypeEnum.VUE_PROJECT.getValue())) {
+            return "build";
+        }
+        return "skip_build";
     }
 }
