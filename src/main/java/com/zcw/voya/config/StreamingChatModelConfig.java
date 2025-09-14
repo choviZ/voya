@@ -2,42 +2,55 @@ package com.zcw.voya.config;
 
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
+import jakarta.annotation.Resource;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
+import java.util.List;
+
 /**
- * 构造用户生成vue项目的流式推理模型对象
+ * 流式对话模型配置
  */
 @Configuration
-@ConfigurationProperties(prefix = "langchain4j.open-ai.reasoner-chat-model")
+@ConfigurationProperties(prefix = "langchain4j.open-ai.streaming-chat-model")
 @Data
-public class ReasoningStreamingChatModelConfig {
+public class StreamingChatModelConfig {
 
-    private String apiKey;
+    @Resource
+    private ChatModelListenerConfig chatModelListenerConfig;
 
     private String baseUrl;
+
+    private String apiKey;
 
     private String modelName;
 
     private Integer maxTokens;
 
-    private boolean logRequests = false;
+    private Double temperature;
 
-    private boolean logResponses = false;
+    private boolean logRequests;
 
+    private boolean logResponses;
+
+    /**
+     * 流式模型
+     */
     @Bean
     @Scope("prototype")
-    public StreamingChatModel reasoningStreamingChatModelPrototype() {
+    public StreamingChatModel streamingChatModelPrototype() {
         return OpenAiStreamingChatModel.builder()
                 .apiKey(apiKey)
                 .baseUrl(baseUrl)
                 .modelName(modelName)
                 .maxTokens(maxTokens)
-                .logRequests(true)
-                .logResponses(true)
+                .temperature(temperature)
+                .logRequests(logRequests)
+                .logResponses(logResponses)
+                .listeners(List.of(chatModelListenerConfig.chatModelListener()))
                 .build();
     }
 }

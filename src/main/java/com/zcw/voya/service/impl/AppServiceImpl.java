@@ -8,6 +8,7 @@ import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.zcw.voya.ai.CodeGenTypeRoutingService;
+import com.zcw.voya.ai.CodeGenTypeRoutingServiceFactory;
 import com.zcw.voya.ai.model.enums.CodeGenTypeEnum;
 import com.zcw.voya.constant.AppConstant;
 import com.zcw.voya.constant.UserConstant;
@@ -56,18 +57,24 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private UserService userService;
+
     @Resource
     private AiCodeGeneratorFacade aiCodeGeneratorFacade;
+
     @Resource
     private ChatHistoryService chatHistoryService;
+
     @Resource
     private StreamHandlerExecutor streamHandlerExecutor;
+
     @Resource
     private VueProjectBuilder vueProjectBuilder;
+
     @Resource
     private ScreenShotService screenShotService;
+
     @Resource
-    private CodeGenTypeRoutingService codeGenTypeRoutingService;
+    private CodeGenTypeRoutingServiceFactory codeGenTypeRoutingServiceFactory;
 
     @Override
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
@@ -152,6 +159,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 获取当前登录用户
         User loginUser = userService.getLoginUser(request);
         // 路由选择生成类型
+        CodeGenTypeRoutingService codeGenTypeRoutingService = codeGenTypeRoutingServiceFactory.createCodeGenTypeRoutingService();
         CodeGenTypeEnum codeGenTypeEnum = codeGenTypeRoutingService.routeCodeGenType(initPrompt);
         ThrowUtils.throwIf(codeGenTypeEnum == null, ErrorCode.PARAMS_ERROR, "不支持的代码生成类型");
         // 创建应用

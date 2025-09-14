@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 @Slf4j
-public class ChatModelConfig {
+public class ChatModelListenerConfig {
 
     @Bean
     ChatModelListener chatModelListener() {

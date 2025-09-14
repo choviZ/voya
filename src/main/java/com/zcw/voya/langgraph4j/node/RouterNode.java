@@ -1,6 +1,7 @@
 package com.zcw.voya.langgraph4j.node;
 
 import com.zcw.voya.ai.CodeGenTypeRoutingService;
+import com.zcw.voya.ai.CodeGenTypeRoutingServiceFactory;
 import com.zcw.voya.ai.model.enums.CodeGenTypeEnum;
 import com.zcw.voya.langgraph4j.state.WorkflowContext;
 import com.zcw.voya.util.SpringContextUtil;
@@ -24,7 +25,8 @@ public class RouterNode {
             CodeGenTypeEnum generationType;
             try {
                 // 获取AI路由服务
-                CodeGenTypeRoutingService routingService = SpringContextUtil.getBean(CodeGenTypeRoutingService.class);
+                CodeGenTypeRoutingServiceFactory factory = SpringContextUtil.getBean(CodeGenTypeRoutingServiceFactory.class);
+                CodeGenTypeRoutingService routingService = factory.createCodeGenTypeRoutingService();
                 // 根据原始提示词进行智能路由
                 generationType = routingService.routeCodeGenType(context.getOriginalPrompt());
                 log.info("AI智能路由完成，选择类型: {} ({})", generationType.getValue(), generationType.getText());

@@ -7,6 +7,7 @@ import com.zcw.voya.ai.tools.*;
 import com.zcw.voya.exception.BusinessException;
 import com.zcw.voya.exception.ErrorCode;
 import com.zcw.voya.service.ChatHistoryService;
+import com.zcw.voya.util.SpringContextUtil;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
@@ -25,12 +26,10 @@ public class AiCodeGeneratorServiceFactory {
 
     @Resource
     private ChatModel openAiChatModel;
-    @Resource
-    private StreamingChatModel openAiStreamingChatModel;
-    @Resource
-    private StreamingChatModel reasoningStreamingChatModel;
+
     @Resource
     private ChatHistoryService chatHistoryService;
+
     @Resource
     private RedisChatMemoryStore redisChatMemoryStore;
 
@@ -84,29 +83,35 @@ public class AiCodeGeneratorServiceFactory {
         chatHistoryService.loadHistoryToMemory(appId, chatMemory, 20);
         return switch (genTypeEnum) {
             // 普通项目用默认模型
-            case HTML, MULTI_FILE -> AiServices.builder(AiCodeGeneratorService.class)
-                    .chatModel(openAiChatModel)
-                    .streamingChatModel(openAiStreamingChatModel)
-                    .chatMemory(chatMemory)
-                    .build();
+            case HTML, MULTI_FILE -> {
+                // 获取模型
+                StreamingChatModel chatModel = SpringContextUtil.getBean("streamingChatModelPrototype", StreamingChatModel.class);
+                yield AiServices.builder(AiCodeGeneratorService.class)
+                        .streamingChatModel(chatModel)
+                        .chatMemory(chatMemory)
+                        .build();
+            }
             // Vue 项目用推理模型
-            case VUE_PROJECT -> AiServices.builder(AiCodeGeneratorService.class)
-                    .chatModel(openAiChatModel)
-                    .streamingChatModel(reasoningStreamingChatModel)
-                    .chatMemoryProvider(memoryId -> chatMemory)
-                    // 添加工具
-                    .tools(
-                            new FileWriteTool(),
-                            new FileReadTool(),
-                            new FileModifyTool(),
-                            new FileDeleteTool(),
-                            new FileDirReadTool()
-                    )
-                    // 幻觉工具名称处理（调用了不存在的工具）
-                    .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
-                            toolExecutionRequest, "Error:no tool called " + toolExecutionRequest.name()
-                    ))
-                    .build();
+            case VUE_PROJECT -> {
+                StreamingChatModel chatModel = SpringContextUtil.getBean("reasoningStreamingChatModelPrototype", StreamingChatModel.class);
+                yield AiServices.builder(AiCodeGeneratorService.class)
+                        .chatModel(openAiChatModel)
+                        .streamingChatModel(chatModel)
+                        .chatMemoryProvider(memoryId -> chatMemory)
+                        // 添加工具
+                        .tools(
+                                new FileWriteTool(),
+                                new FileReadTool(),
+                                new FileModifyTool(),
+                                new FileDeleteTool(),
+                                new FileDirReadTool()
+                        )
+                        // 幻觉工具名称处理（调用了不存在的工具）
+                        .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
+                                toolExecutionRequest, "Error:no tool called " + toolExecutionRequest.name()
+                        ))
+                        .build();
+            }
             default -> throw new BusinessException(ErrorCode.PARAMS_ERROR, "不支持的生成类型");
         };
     }

@@ -1,8 +1,8 @@
 package com.zcw.voya.ai;
 
+import com.zcw.voya.util.SpringContextUtil;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
-import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,13 +14,24 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 public class CodeGenTypeRoutingServiceFactory {
 
-    @Resource
-    private ChatModel openAiChatModel;
-
-    @Bean
-    public CodeGenTypeRoutingService getCodeGenTypeRoutingService() {
+    /**
+     * 创建代码生成类型路由服务
+     * @return CodeGenTypeRoutingService
+     */
+    public CodeGenTypeRoutingService createCodeGenTypeRoutingService() {
+        ChatModel routingChatModelPrototype = SpringContextUtil.getBean("routingChatModelPrototype", ChatModel.class);
         return AiServices.builder(CodeGenTypeRoutingService.class)
-                .chatModel(openAiChatModel)
+                .chatModel(routingChatModelPrototype)
                 .build();
     }
+
+    /**
+     * 默认提供一个Bean，兼容老逻辑
+     * @return
+     */
+    @Bean
+    public CodeGenTypeRoutingService aiCodeGenTypeRoutingService() {
+        return createCodeGenTypeRoutingService();
+    }
+
 }
