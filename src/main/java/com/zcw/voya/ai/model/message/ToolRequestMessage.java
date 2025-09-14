@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 /**
  * 工具调用消息
  */
-@Data
+@Data  
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 public class ToolRequestMessage extends StreamMessage {

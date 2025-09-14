@@ -16,11 +16,11 @@
           应用详情
         </a-button>
         <a-button
-            type="primary"
-            ghost
-            @click="downloadCode"
-            :loading="downloading"
-            :disabled="!isOwner"
+          type="primary"
+          ghost
+          @click="downloadCode"
+          :loading="downloading"
+          :disabled="!isOwner"
         >
           <template #icon>
             <DownloadOutlined />
@@ -72,11 +72,11 @@
 
         <!-- 选中元素信息展示 -->
         <a-alert
-            v-if="selectedElementInfo"
-            class="selected-element-alert"
-            type="info"
-            closable
-            @close="clearSelectedElement"
+          v-if="selectedElementInfo"
+          class="selected-element-alert"
+          type="info"
+          closable
+          @close="clearSelectedElement"
         >
           <template #message>
             <div class="selected-element-info">
@@ -113,29 +113,29 @@
           <div class="input-wrapper">
             <a-tooltip v-if="!isOwner" title="无法在别人的作品下对话哦~" placement="top">
               <a-textarea
-                  v-model:value="userInput"
-                  :placeholder="getInputPlaceholder()"
-                  :rows="4"
-                  :maxlength="1000"
-                  @keydown.enter.prevent="sendMessage"
-                  :disabled="isGenerating || !isOwner"
-              />
-            </a-tooltip>
-            <a-textarea
-                v-else
                 v-model:value="userInput"
                 :placeholder="getInputPlaceholder()"
                 :rows="4"
                 :maxlength="1000"
                 @keydown.enter.prevent="sendMessage"
-                :disabled="isGenerating"
+                :disabled="isGenerating || !isOwner"
+              />
+            </a-tooltip>
+            <a-textarea
+              v-else
+              v-model:value="userInput"
+              :placeholder="getInputPlaceholder()"
+              :rows="4"
+              :maxlength="1000"
+              @keydown.enter.prevent="sendMessage"
+              :disabled="isGenerating"
             />
             <div class="input-actions">
               <a-button
-                  type="primary"
-                  @click="sendMessage"
-                  :loading="isGenerating"
-                  :disabled="!isOwner"
+                type="primary"
+                @click="sendMessage"
+                :loading="isGenerating"
+                :disabled="!isOwner"
               >
                 <template #icon>
                   <SendOutlined />
@@ -151,12 +151,12 @@
           <h3>生成后的网页展示</h3>
           <div class="preview-actions">
             <a-button
-                v-if="isOwner && previewUrl"
-                type="link"
-                :danger="isEditMode"
-                @click="toggleEditMode"
-                :class="{ 'edit-mode-active': isEditMode }"
-                style="padding: 0; height: auto; margin-right: 12px"
+              v-if="isOwner && previewUrl"
+              type="link"
+              :danger="isEditMode"
+              @click="toggleEditMode"
+              :class="{ 'edit-mode-active': isEditMode }"
+              style="padding: 0; height: auto; margin-right: 12px"
             >
               <template #icon>
                 <EditOutlined />
@@ -181,11 +181,11 @@
             <p>正在生成网站...</p>
           </div>
           <iframe
-              v-else
-              :src="previewUrl"
-              class="preview-iframe"
-              frameborder="0"
-              @load="onIframeLoad"
+            v-else
+            :src="previewUrl"
+            class="preview-iframe"
+            frameborder="0"
+            @load="onIframeLoad"
           ></iframe>
         </div>
       </div>
@@ -193,18 +193,18 @@
 
     <!-- 应用详情弹窗 -->
     <AppDetailModal
-        v-model:open="appDetailVisible"
-        :app="appInfo"
-        :show-actions="isOwner || isAdmin"
-        @edit="editApp"
-        @delete="deleteApp"
+      v-model:open="appDetailVisible"
+      :app="appInfo"
+      :show-actions="isOwner || isAdmin"
+      @edit="editApp"
+      @delete="deleteApp"
     />
 
     <!-- 部署成功弹窗 -->
     <DeploySuccessModal
-        v-model:open="deployModalVisible"
-        :deploy-url="deployUrl"
-        @open-site="openDeployedSite"
+      v-model:open="deployModalVisible"
+      :deploy-url="deployUrl"
+      @open-site="openDeployedSite"
     />
   </div>
 </template>
@@ -265,7 +265,6 @@ const loadingHistory = ref(false)
 const hasMoreHistory = ref(false)
 const lastCreateTime = ref<string>()
 const historyLoaded = ref(false)
-const chatHistories = ref<API.ChatHistory[]>([])
 
 // 预览相关
 const previewUrl = ref('')
@@ -320,25 +319,16 @@ const loadChatHistory = async (isLoadMore = false) => {
     }
     const res = await listAppChatHistory(params)
     if (res.data.code === 0 && res.data.data) {
-      const histories = res.data.data.records || []
-      if (histories.length > 0) {
-        // 保存聊天历史记录
-        if (isLoadMore) {
-          // 加载更多时，将历史消息添加到开头
-          chatHistories.value = [...histories, ...chatHistories.value]
-        } else {
-          // 初始加载，直接设置消息列表
-          chatHistories.value = histories
-        }
-        
-        // 将对话历史转换为消息格式，并按时间升序排列（老消息在前）
-        const historyMessages: Message[] = histories
-            .map((chat) => ({
-              type: (chat.messageType === 'user' ? 'user' : 'ai') as 'user' | 'ai',
-              content: chat.message || '',
-              createTime: chat.createTime,
-            }))
-            .reverse() // 反转数组，让老消息在前
+      const chatHistories = res.data.data.records || []
+      if (chatHistories.length > 0) {
+        // 将对话历史转换为消息格式，并按时间正序排列（老消息在前）
+        const historyMessages: Message[] = chatHistories
+          .map((chat) => ({
+            type: (chat.messageType === 'user' ? 'user' : 'ai') as 'user' | 'ai',
+            content: chat.message || '',
+            createTime: chat.createTime,
+          }))
+          .reverse() // 反转数组，让老消息在前
         if (isLoadMore) {
           // 加载更多时，将历史消息添加到开头
           messages.value.unshift(...historyMessages)
@@ -347,9 +337,9 @@ const loadChatHistory = async (isLoadMore = false) => {
           messages.value = historyMessages
         }
         // 更新游标
-        lastCreateTime.value = histories[0]?.createTime
+        lastCreateTime.value = chatHistories[chatHistories.length - 1]?.createTime
         // 检查是否还有更多历史
-        hasMoreHistory.value = histories.length === 10
+        hasMoreHistory.value = chatHistories.length === 10
       } else {
         hasMoreHistory.value = false
       }
@@ -366,36 +356,6 @@ const loadChatHistory = async (isLoadMore = false) => {
 // 加载更多历史消息
 const loadMoreHistory = async () => {
   await loadChatHistory(true)
-}
-
-// 获取应用信息（不触发初始消息发送）
-const fetchAppInfoWithoutInitialMessage = async () => {
-  const id = route.params.id as string
-  if (!id) {
-    message.error('应用ID不存在')
-    router.push('/')
-    return
-  }
-
-  appId.value = id
-
-  try {
-    const res = await getAppVoById({ id: id as unknown as number })
-    if (res.data.code === 0 && res.data.data) {
-      appInfo.value = res.data.data
-      // 如果有至少2条对话记录，展示对应的网站
-      if (messages.value.length >= 2) {
-        updatePreview()
-      }
-    } else {
-      message.error('获取应用信息失败')
-      router.push('/')
-    }
-  } catch (error) {
-    console.error('获取应用信息失败：', error)
-    message.error('获取应用信息失败')
-    router.push('/')
-  }
 }
 
 // 获取应用信息
@@ -421,12 +381,12 @@ const fetchAppInfo = async () => {
         updatePreview()
       }
       // 检查是否需要自动发送初始提示词
-      // 移除之前页面url的new参数判断，如果是自己的app，并且没有对话历史，才自动发送初始提示词
+      // 只有在是自己的应用且没有对话历史时才自动发送
       if (
-          appInfo.value.initPrompt &&
-          isOwner.value &&
-          messages.value.length === 0 && 
-          historyLoaded.value
+        appInfo.value.initPrompt &&
+        isOwner.value &&
+        messages.value.length === 0 &&
+        historyLoaded.value
       ) {
         await sendInitialMessage(appInfo.value.initPrompt)
       }
@@ -569,17 +529,9 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
       isGenerating.value = false
       eventSource?.close()
 
-      // 移除URL中的new=1参数，防止页面刷新时重复调用生成接口
-      if (route.query.new === '1') {
-        const newQuery = { ...route.query }
-        delete newQuery.new
-        router.replace({ query: newQuery })
-      }
-
       // 延迟更新预览，确保后端已完成处理
       setTimeout(async () => {
-        // 获取应用信息但不触发初始消息发送
-        await fetchAppInfoWithoutInitialMessage()
+        await fetchAppInfo()
         updatePreview()
       }, 1000)
     })
@@ -593,15 +545,8 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
         isGenerating.value = false
         eventSource?.close()
 
-        // 移除URL中的new=1参数，防止页面刷新时重复调用生成接口
-        if (route.query.new === '1') {
-          const newQuery = { ...route.query }
-          delete newQuery.new
-          router.replace({ query: newQuery })
-        }
-
         setTimeout(async () => {
-          await fetchAppInfoWithoutInitialMessage()
+          await fetchAppInfo()
           updatePreview()
         }, 1000)
       } else {
