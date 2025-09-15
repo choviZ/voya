@@ -2,6 +2,7 @@ package com.zcw.voya.ai;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.zcw.voya.ai.guardrail.PromptSafetyInputGuardrail;
 import com.zcw.voya.ai.model.enums.CodeGenTypeEnum;
 import com.zcw.voya.ai.tools.*;
 import com.zcw.voya.exception.BusinessException;
@@ -89,6 +90,8 @@ public class AiCodeGeneratorServiceFactory {
                 yield AiServices.builder(AiCodeGeneratorService.class)
                         .streamingChatModel(chatModel)
                         .chatMemory(chatMemory)
+                        // 输入护轨
+                        .inputGuardrails(new PromptSafetyInputGuardrail())
                         .build();
             }
             // Vue 项目用推理模型
@@ -110,6 +113,8 @@ public class AiCodeGeneratorServiceFactory {
                         .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                                 toolExecutionRequest, "Error:no tool called " + toolExecutionRequest.name()
                         ))
+                        // 输入护轨
+                        .inputGuardrails(new PromptSafetyInputGuardrail())
                         .build();
             }
             default -> throw new BusinessException(ErrorCode.PARAMS_ERROR, "不支持的生成类型");
