@@ -53,6 +53,20 @@ export async function adminUpdateApp(body: API.AppUpdateRequest, options?: { [ke
   })
 }
 
+/** 此处后端没有提供注释 GET /app/build/status/${param0} */
+export async function getBuildStatus(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getBuildStatusParams,
+  options?: { [key: string]: any }
+) {
+  const { appId: param0, ...queryParams } = params
+  return request<API.BaseResponseMapStringObject>(`/app/build/status/${param0}`, {
+    method: 'GET',
+    params: { ...queryParams },
+    ...(options || {}),
+  })
+}
+
 /** 此处后端没有提供注释 GET /app/chat/gen/code */
 export async function chatToGenCode(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)

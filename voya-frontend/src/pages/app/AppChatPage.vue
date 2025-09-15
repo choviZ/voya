@@ -218,6 +218,7 @@ import {
   getAppVoById,
   appDeploy as deployAppApi,
   deleteApp as deleteAppApi,
+  getBuildStatus,
 } from '@/api/appController'
 import { listAppChatHistory } from '@/api/chatHistoryController'
 import { CodeGenTypeEnum, formatCodeGenType } from '@/utils/codeGenTypes'
@@ -522,18 +523,25 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     }
 
     // 处理done事件
-    eventSource.addEventListener('done', function () {
+    eventSource.addEventListener('done', async function() {
       if (streamCompleted) return
-
       streamCompleted = true
       isGenerating.value = false
       eventSource?.close()
-
-      // 延迟更新预览，确保后端已完成处理
-      setTimeout(async () => {
-        await fetchAppInfo()
+      
+      // 刷新应用信息
+      await fetchAppInfo()
+      
+      // 检查构建状态并处理预览更新
+      if (appInfo.value?.codeGenType === CodeGenTypeEnum.VUE_PROJECT) {
+        // Vue项目需要等待构建完成
+        console.log('Vue项目生成完成，开始轮询构建状态')
+        await checkBuildStatus(appId.value)
+      } else {
+        // 非Vue项目直接更新预览
+        console.log('非Vue项目生成完成，直接更新预览')
         updatePreview()
-      }, 1000)
+      }
     })
 
     // 处理错误
@@ -545,9 +553,14 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
         isGenerating.value = false
         eventSource?.close()
 
+        // 连接关闭时也需要检查构建状态
         setTimeout(async () => {
           await fetchAppInfo()
-          updatePreview()
+          if (appInfo.value?.codeGenType === CodeGenTypeEnum.VUE_PROJECT) {
+            await checkBuildStatus(appId.value)
+          } else {
+            updatePreview()
+          }
         }, 1000)
       } else {
         handleError(new Error('SSE连接错误'), aiMessageIndex)
@@ -556,6 +569,60 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
   } catch (error) {
     console.error('创建 EventSource 失败：', error)
     handleError(error, aiMessageIndex)
+  }
+}
+
+// 构建状态轮询定时器
+let buildStatusPollingTimer: number | null = null
+const POLLING_INTERVAL = 1000 // 轮询间隔，1秒
+
+/**
+ * 轮循检查项目构建状态
+ * @param appId
+ */
+const checkBuildStatus = async (appId: string) => {
+  // 如果不是Vue项目，直接返回
+  if (appInfo.value?.codeGenType !== CodeGenTypeEnum.VUE_PROJECT) {
+    stopBuildStatusPolling()
+    return
+  }
+  
+  try {
+    const res = await getBuildStatus({ appId: appId as unknown as number })
+    const isCompleted = res.data.code === 0 && res.data.data && res.data.data.status === 'completed'
+    console.log('构建状态检查:', res.data.data?.status)
+    
+    if (!isCompleted) {
+      // 未完成，继续轮询
+      buildStatusPollingTimer = window.setTimeout(() => {
+        checkBuildStatus(appId)
+      }, POLLING_INTERVAL)
+    } else {
+      // 构建已完成，停止轮询并更新预览
+      console.log('Vue项目构建已完成，更新预览')
+      stopBuildStatusPolling()
+      
+      // 等待一小段时间确保文件完全写入，然后更新预览
+      setTimeout(() => {
+        updatePreview()
+        message.success('项目构建完成，预览已更新')
+      }, 500)
+    }
+  } catch (error) {
+    console.error('查询构建状态失败:', error)
+    // 出错时也要停止轮询
+    stopBuildStatusPolling()
+  }
+}
+
+/**
+ * 停止构建状态轮询
+ */
+const stopBuildStatusPolling = () => {
+  if (buildStatusPollingTimer) {
+    clearTimeout(buildStatusPollingTimer)
+    buildStatusPollingTimer = null
+    console.log('已停止构建状态轮询')
   }
 }
 
@@ -733,7 +800,12 @@ const getInputPlaceholder = () => {
 // 页面加载时获取应用信息
 onMounted(() => {
   fetchAppInfo()
+})
 
+// 页面卸载时清理定时器
+onUnmounted(() => {
+  stopBuildStatusPolling()
+})
   // 监听 iframe 消息
   window.addEventListener('message', (event) => {
     visualEditor.handleIframeMessage(event)

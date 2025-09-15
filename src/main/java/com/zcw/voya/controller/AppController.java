@@ -33,6 +33,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -124,6 +125,48 @@ public class AppController {
         projectDownloadService.downLoadProjectAsZpi(sourceDirPath,String.valueOf(appId),response);
     }
 
+    /**
+     * 获取应用构建状态
+     * @param appId 应用id
+     * @param request 请求
+     * @return 构建状态
+     */
+    @GetMapping("/build/status/{appId}")
+    public BaseResponse<Map<String, Object>> getBuildStatus(@PathVariable Long appId, HttpServletRequest request) {
+        // 参数校验和权限检查
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID无效");
+        User loginUser = userService.getLoginUser(request);
+        App app = appService.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        if (!app.getUserId().equals(loginUser.getId()) && !UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限查询构建状态");
+        }
+        // 检查构建状态
+        String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + "vue_project_" + appId;
+        File projectDir = new File(projectPath);
+        File distDir = new File(projectDir, "dist");
+        Map<String, Object> buildStatus = new HashMap<>();
+        buildStatus.put("appId", appId);
+        if (distDir.exists()) {
+            buildStatus.put("status", "completed");
+            buildStatus.put("message", "构建已完成");
+            buildStatus.put("buildTime", distDir.lastModified());
+        } else if (projectDir.exists()) {
+            buildStatus.put("status", "pending");
+            buildStatus.put("message", "项目已生成，等待构建");
+        } else {
+            buildStatus.put("status", "not_found");
+            buildStatus.put("message", "项目不存在");
+        }
+        return ResultUtils.success(buildStatus);
+    }
+
+    /**
+     * 获取用户应用列表
+     * @param request 请求
+     * @param appQueryRequest 查询参数
+     * @return 应用列表
+     */
     @PostMapping("/my/list/page/vo")
     @AuthCheck(mustRole = UserConstant.USER_LOGIN_STATE)
     public BaseResponse<Page<AppVO>> getMyAppList(HttpServletRequest request,@RequestBody AppQueryRequest appQueryRequest){

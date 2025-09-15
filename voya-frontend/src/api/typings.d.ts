@@ -91,6 +91,12 @@ declare namespace API {
     message?: string
   }
 
+  type BaseResponseMapStringObject = {
+    code?: number
+    data?: Record<string, any>
+    message?: string
+  }
+
   type BaseResponsePageAppVO = {
     code?: number
     data?: PageAppVO
@@ -170,6 +176,10 @@ declare namespace API {
 
   type getAppVOByIdParams = {
     id: number
+  }
+
+  type getBuildStatusParams = {
+    appId: number
   }
 
   type getUserByIdParams = {

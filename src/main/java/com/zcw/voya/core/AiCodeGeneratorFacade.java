@@ -9,6 +9,8 @@ import com.zcw.voya.ai.model.enums.CodeGenTypeEnum;
 import com.zcw.voya.ai.model.message.AiResponseMessage;
 import com.zcw.voya.ai.model.message.ToolExecutedMessage;
 import com.zcw.voya.ai.model.message.ToolRequestMessage;
+import com.zcw.voya.constant.AppConstant;
+import com.zcw.voya.core.build.VueProjectBuilder;
 import com.zcw.voya.core.parser.CodeParserExecutor;
 import com.zcw.voya.core.saver.CodeFileSaverExecutor;
 import com.zcw.voya.exception.BusinessException;
@@ -30,6 +32,9 @@ public class AiCodeGeneratorFacade {
 
     @Resource
     private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
+
+    @Resource
+    private VueProjectBuilder vueProjectBuilder;
 
     /**
      * 统一入口：根据类型生成代码并保存（阻塞）
@@ -90,13 +95,13 @@ public class AiCodeGeneratorFacade {
     private Flux<String> generateVueProjectStream(String prompt, Long appId) {
         AiCodeGeneratorService service = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId, CodeGenTypeEnum.VUE_PROJECT);
         TokenStream tokenStream = service.generateVueProjectCodeStream(appId, prompt);
-        return processTokenStream(tokenStream);
+        return processTokenStream(tokenStream,appId);
     }
 
     /**
      * 处理token流转化为Flux流
      */
-    private Flux<String> processTokenStream(TokenStream tokenStream) {
+    private Flux<String> processTokenStream(TokenStream tokenStream,Long appId) {
         return Flux.create(sink -> {
             // 部分响应
             tokenStream.onPartialResponse(partialResponse -> {
@@ -115,6 +120,9 @@ public class AiCodeGeneratorFacade {
                     })
                     // 完成响应
                     .onCompleteResponse(completeResponse -> {
+                        // 构建vue项目
+                        String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
+                        vueProjectBuilder.buildProjectAsync(projectPath);
                         sink.complete();
                     })
                     .onError(error -> {
