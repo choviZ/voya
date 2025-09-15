@@ -523,15 +523,15 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     }
 
     // 处理done事件
-    eventSource.addEventListener('done', async function() {
+    eventSource.addEventListener('done', async function () {
       if (streamCompleted) return
       streamCompleted = true
       isGenerating.value = false
       eventSource?.close()
-      
+
       // 刷新应用信息
       await fetchAppInfo()
-      
+
       // 检查构建状态并处理预览更新
       if (appInfo.value?.codeGenType === CodeGenTypeEnum.VUE_PROJECT) {
         // Vue项目需要等待构建完成
@@ -586,12 +586,12 @@ const checkBuildStatus = async (appId: string) => {
     stopBuildStatusPolling()
     return
   }
-  
+
   try {
     const res = await getBuildStatus({ appId: appId as unknown as number })
     const isCompleted = res.data.code === 0 && res.data.data && res.data.data.status === 'completed'
     console.log('构建状态检查:', res.data.data?.status)
-    
+
     if (!isCompleted) {
       // 未完成，继续轮询
       buildStatusPollingTimer = window.setTimeout(() => {
@@ -601,7 +601,7 @@ const checkBuildStatus = async (appId: string) => {
       // 构建已完成，停止轮询并更新预览
       console.log('Vue项目构建已完成，更新预览')
       stopBuildStatusPolling()
-      
+
       // 等待一小段时间确保文件完全写入，然后更新预览
       setTimeout(() => {
         updatePreview()
@@ -806,10 +806,9 @@ onMounted(() => {
 onUnmounted(() => {
   stopBuildStatusPolling()
 })
-  // 监听 iframe 消息
-  window.addEventListener('message', (event) => {
-    visualEditor.handleIframeMessage(event)
-  })
+// 监听 iframe 消息
+window.addEventListener('message', (event) => {
+  visualEditor.handleIframeMessage(event)
 })
 
 // 清理资源
