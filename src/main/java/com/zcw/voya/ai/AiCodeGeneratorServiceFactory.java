@@ -109,6 +109,8 @@ public class AiCodeGeneratorServiceFactory {
                                 new FileDeleteTool(),
                                 new FileDirReadTool()
                         )
+                        // 最大连续工具调用次数
+                        .maxSequentialToolsInvocations(35)
                         // 幻觉工具名称处理（调用了不存在的工具）
                         .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                                 toolExecutionRequest, "Error:no tool called " + toolExecutionRequest.name()
