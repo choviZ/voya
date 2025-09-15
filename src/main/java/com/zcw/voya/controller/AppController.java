@@ -25,6 +25,7 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
@@ -204,6 +205,11 @@ public class AppController {
      * @return 精选应用VO分页列表
      */
     @PostMapping("/list/featured/page/vo")
+    @Cacheable(
+            value = "featured_app_page",
+            key = "T(com.zcw.voya.util.CacheKeyUtils).generateKey(#appQueryRequest)",
+            condition = "#appQueryRequest.current <= 10"
+    )
     public BaseResponse<Page<AppVO>> listFeaturedAppVOByPage(@Valid @RequestBody AppQueryRequest appQueryRequest) {
         Page<AppVO> appVOPage = appService.listFeaturedAppVOByPage(appQueryRequest);
         return ResultUtils.success(appVOPage);
