@@ -4,9 +4,12 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.IORuntimeException;
 import cn.hutool.core.util.RandomUtil;
+import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
+import com.zcw.voya.ai.AppNameGeneratorService;
+import com.zcw.voya.ai.AppNameGeneratorServiceFactory;
 import com.zcw.voya.ai.CodeGenTypeRoutingService;
 import com.zcw.voya.ai.CodeGenTypeRoutingServiceFactory;
 import com.zcw.voya.ai.model.enums.CodeGenTypeEnum;
@@ -75,6 +78,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private CodeGenTypeRoutingServiceFactory codeGenTypeRoutingServiceFactory;
+
+    @Resource
+    private AppNameGeneratorServiceFactory appNameGeneratorServiceFactory;
 
     @Override
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
@@ -162,10 +168,16 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         CodeGenTypeRoutingService codeGenTypeRoutingService = codeGenTypeRoutingServiceFactory.createCodeGenTypeRoutingService();
         CodeGenTypeEnum codeGenTypeEnum = codeGenTypeRoutingService.routeCodeGenType(initPrompt);
         ThrowUtils.throwIf(codeGenTypeEnum == null, ErrorCode.PARAMS_ERROR, "不支持的代码生成类型");
+        // 生成应用名称
+        AppNameGeneratorService appNameGeneratorService = appNameGeneratorServiceFactory.createAppNameGeneratorService();
+        String appName = appNameGeneratorService.generateAppName(appAddRequest.getInitPrompt());
+        if (StrUtil.isBlank(appName)){
+            // 生成应用名称为空则使用提示词前12位
+            appName = initPrompt.substring(0, Math.min(initPrompt.length(), 12));
+        }
         // 创建应用
         App app = App.builder()
-                // 应用名称是提示词前12位
-                .appName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)))
+                .appName(appName)
                 .initPrompt(initPrompt)
                 .userId(loginUser.getId())
                 .codeGenType(codeGenTypeEnum.getValue())

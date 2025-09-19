@@ -9,12 +9,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 /**
- * 路由模型配置
+ * 简单任务的模型配置
  */
 @Configuration
-@ConfigurationProperties(prefix = "langchain4j.open-ai.routing-chat-model")
+@ConfigurationProperties(prefix = "langchain4j.open-ai.simple-task-model")
 @Data
-public class RoutingAiModelConfig {
+public class SimpleAiTaskModelConfig {
 
     private String baseUrl;
 
@@ -35,7 +35,7 @@ public class RoutingAiModelConfig {
      */
     @Bean
     @Scope("prototype")
-    public ChatModel routingChatModelPrototype() {
+    public ChatModel simpleTaskChatModelPrototype() {
         return OpenAiChatModel.builder()
                 .apiKey(apiKey)
                 .modelName(modelName)

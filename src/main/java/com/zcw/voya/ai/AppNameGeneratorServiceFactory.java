@@ -8,30 +8,20 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Ai代码生成类型路由服务工厂
+ * 应用名称生成服务工厂
  */
 @Configuration
 @Slf4j
-public class CodeGenTypeRoutingServiceFactory {
+public class AppNameGeneratorServiceFactory {
 
     /**
-     * 创建代码生成类型路由服务
-     * @return CodeGenTypeRoutingService
+     * 创建应用名称生成服务
+     * @return AppNameGeneratorService
      */
-    public CodeGenTypeRoutingService createCodeGenTypeRoutingService() {
+    public AppNameGeneratorService createAppNameGeneratorService() {
         ChatModel simpleTaskChatModel = SpringContextUtil.getBean("simpleTaskChatModelPrototype", ChatModel.class);
-        return AiServices.builder(CodeGenTypeRoutingService.class)
+        return AiServices.builder(AppNameGeneratorService.class)
                 .chatModel(simpleTaskChatModel)
                 .build();
     }
-
-    /**
-     * 默认提供一个Bean，兼容老逻辑
-     * @return
-     */
-    @Bean
-    public CodeGenTypeRoutingService aiCodeGenTypeRoutingService() {
-        return createCodeGenTypeRoutingService();
-    }
-
 }
