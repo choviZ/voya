@@ -18,6 +18,8 @@ import com.zcw.voya.model.dto.app.AppUpdateRequest;
 import com.zcw.voya.model.entity.App;
 import com.zcw.voya.model.entity.User;
 import com.zcw.voya.model.vo.AppVO;
+import com.zcw.voya.ratelimiter.annotation.RateLimit;
+import com.zcw.voya.ratelimiter.enums.RateLimitType;
 import com.zcw.voya.service.AppService;
 import com.zcw.voya.service.ProjectDownloadService;
 import com.zcw.voya.service.UserService;
@@ -75,6 +77,7 @@ public class AppController {
      * @return SSE流
      */
     @GetMapping(value = "/chat/gen/code", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @RateLimit(limitType = RateLimitType.USER,rate = 5, rateInterval = 60,message = "请求过于频繁，请稍后再试")
     public Flux<ServerSentEvent<String>> chatToGenCode(@RequestParam Long appId, @RequestParam String message, HttpServletRequest request) {
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用id无效");
         ThrowUtils.throwIf(message == null || message.isEmpty(), ErrorCode.PARAMS_ERROR, "初始prompt不能为空");
