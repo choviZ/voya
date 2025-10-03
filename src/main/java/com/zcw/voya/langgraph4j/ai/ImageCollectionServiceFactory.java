@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
 public class ImageCollectionServiceFactory {
 
     @Resource
-    private ChatModel openAiChatModel;
+    private ChatModel simpleTaskChatModelPrototype;
 
     @Resource
     private ImageSearchTool imageSearchTool;
@@ -40,7 +40,7 @@ public class ImageCollectionServiceFactory {
     @Bean
     public ImageCollectionService createImageCollectionService() {
         return AiServices.builder(ImageCollectionService.class)
-                .chatModel(openAiChatModel)
+                .chatModel(simpleTaskChatModelPrototype)
                 .tools(
                         imageSearchTool,
                         logoGeneratorTool,

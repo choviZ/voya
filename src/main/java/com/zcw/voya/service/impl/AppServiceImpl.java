@@ -38,6 +38,7 @@ import io.micrometer.common.util.StringUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -57,6 +58,9 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppService {
+
+    @Value("${code.deploy-host:http://localhost}")
+    private String deployHost;
 
     @Resource
     private UserService userService;
@@ -143,9 +147,6 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         } catch (IORuntimeException e) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, e.getMessage());
         }
-        // 异步构建应用封面
-        String appDeployUrl = AppConstant.CODE_DEPLOY_HOST + "/" + deployKey;
-        generateAppScreenshotAsync(appId, appDeployUrl);
         // 更新部署信息
         App updateApp = new App();
         updateApp.setId(app.getId());
@@ -154,7 +155,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         boolean updated = this.updateById(updateApp);
         ThrowUtils.throwIf(!updated, ErrorCode.SYSTEM_ERROR, "更新应用部署信息失败");
         // 返回可访问的URL
-        return String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
+        String appDeployUrl = String.format("%s/%s/", deployHost, deployKey);
+        // 异步构建应用封面
+        generateAppScreenshotAsync(appId, appDeployUrl);
+        return appDeployUrl;
     }
 
     @Override

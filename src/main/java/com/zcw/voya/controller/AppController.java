@@ -225,7 +225,7 @@ public class AppController {
      * @return 应用详情VO
      */
     @GetMapping("/get/vo")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @AuthCheck(mustRole = UserConstant.DEFAULT_ROLE)
     public BaseResponse<AppVO> getAppVOById(long id, HttpServletRequest request) {
         App app = appService.getAppById(id, request);
         return ResultUtils.success(appService.getAppVO(app));

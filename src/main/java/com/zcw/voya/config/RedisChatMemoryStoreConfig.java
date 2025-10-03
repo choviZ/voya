@@ -1,5 +1,6 @@
 package com.zcw.voya.config;
 
+import cn.hutool.core.util.StrUtil;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -21,10 +22,15 @@ public class RedisChatMemoryStoreConfig {
 
     @Bean
     public RedisChatMemoryStore redisChatMemoryStore() {
-        return RedisChatMemoryStore.builder()
+        RedisChatMemoryStore.Builder builder = RedisChatMemoryStore.builder()
                 .host(host)
                 .port(port)
                 .ttl(ttl)
-                .build();
+                .password(password);
+        // 如果密码不为空，则设置用户名
+        if (StrUtil.isNotBlank(password)){
+            builder.user("default");
+        }
+        return builder.build();
     }
 }
