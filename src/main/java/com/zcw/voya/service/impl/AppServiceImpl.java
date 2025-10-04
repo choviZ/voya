@@ -27,6 +27,7 @@ import com.zcw.voya.model.dto.app.AppUpdateRequest;
 import com.zcw.voya.model.entity.App;
 import com.zcw.voya.model.entity.User;
 import com.zcw.voya.model.enums.ChatHistoryMessageTypeEnum;
+import com.zcw.voya.model.enums.UserQuotaTypeEnum;
 import com.zcw.voya.model.vo.AppVO;
 import com.zcw.voya.mapper.AppMapper;
 import com.zcw.voya.model.vo.UserVO;
@@ -91,6 +92,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 查询应用信息
         App app = this.getById(appId);
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        // 校验额度
+        Integer chatLimit = loginUser.getChatLimit();
+        ThrowUtils.throwIf(chatLimit <= 0, ErrorCode.NoCHatQuotaLeft, "您的对话额度已用完");
         // 验证权限
         if (!UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole()) && !app.getUserId().equals(loginUser.getId())) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限访问该应用");
@@ -102,6 +106,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 保存用户消息
         boolean saved = chatHistoryService.addChatHistory(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
         ThrowUtils.throwIf(!saved, ErrorCode.OPERATION_ERROR, "保存用户消息失败");
+        // 扣减对话额度
+        boolean updated = userService.updateUserBalance(UserQuotaTypeEnum.CHAT_APP.getValue(), loginUser, -1);
+        ThrowUtils.throwIf(!updated, ErrorCode.OPERATION_ERROR, "更新用户额度失败");
         // 调用ai生成代码
         Flux<String> flux = aiCodeGeneratorFacade.generateCodeStream(message, codeGenTypeEnum, appId);
         // 收集AI响应的内容,并保存对话记录
@@ -129,7 +136,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         }
         // 单独处理vue项目
         CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getEnumByValue(codeGenType);
-        if (codeGenTypeEnum == CodeGenTypeEnum.VUE_PROJECT){
+        if (codeGenTypeEnum == CodeGenTypeEnum.VUE_PROJECT) {
             // 构建
             boolean success = vueProjectBuilder.buildProject(sourceDirPath);
             ThrowUtils.throwIf(!success, ErrorCode.SYSTEM_ERROR, "构建Vue项目失败，请检查代码和依赖");
@@ -138,7 +145,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             ThrowUtils.throwIf(!dist.exists() || !dist.isDirectory(), ErrorCode.SYSTEM_ERROR, "构建Vue项目完成，但未生成dist目录");
             // 将dist目录作为部署源
             sourceDir = dist;
-            log.info("Vue项目构建成功，将部署dist目录：{}",dist.getAbsolutePath());
+            log.info("Vue项目构建成功，将部署dist目录：{}", dist.getAbsolutePath());
         }
         File distFile = new File(AppConstant.CODE_DEPLOY_ROOT_DIR + File.separator + deployKey);
         try {
@@ -165,17 +172,20 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     public long createApp(AppAddRequest appAddRequest, HttpServletRequest request) {
         // 校验参数
         ThrowUtils.throwIf(appAddRequest == null, ErrorCode.PARAMS_ERROR, "请求参数为空");
-        String initPrompt = appAddRequest.getInitPrompt();
         // 获取当前登录用户
         User loginUser = userService.getLoginUser(request);
+        // 校验用户剩余额度
+        Integer createAppLimit = loginUser.getCreateAppLimit();
+        ThrowUtils.throwIf(createAppLimit <= 0, ErrorCode.NoCreateQuotaLeft);
         // 路由选择生成类型
+        String initPrompt = appAddRequest.getInitPrompt();
         CodeGenTypeRoutingService codeGenTypeRoutingService = codeGenTypeRoutingServiceFactory.createCodeGenTypeRoutingService();
         CodeGenTypeEnum codeGenTypeEnum = codeGenTypeRoutingService.routeCodeGenType(initPrompt);
         ThrowUtils.throwIf(codeGenTypeEnum == null, ErrorCode.PARAMS_ERROR, "不支持的代码生成类型");
         // 生成应用名称
         AppNameGeneratorService appNameGeneratorService = appNameGeneratorServiceFactory.createAppNameGeneratorService();
         String appName = appNameGeneratorService.generateAppName(appAddRequest.getInitPrompt());
-        if (StrUtil.isBlank(appName)){
+        if (StrUtil.isBlank(appName)) {
             // 生成应用名称为空则使用提示词前12位
             appName = initPrompt.substring(0, Math.min(initPrompt.length(), 12));
         }
@@ -191,6 +201,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                 .build();
         boolean saveResult = save(app);
         ThrowUtils.throwIf(!saveResult, ErrorCode.OPERATION_ERROR, "创建应用失败");
+        // 扣减额度
+        boolean updatedCreate = userService.updateUserBalance(UserQuotaTypeEnum.CREATE_APP.getValue(), loginUser, -1);
+        boolean updatedChat = userService.updateUserBalance(UserQuotaTypeEnum.CHAT_APP.getValue(), loginUser, -1);
+        ThrowUtils.throwIf(!updatedCreate || !updatedChat, ErrorCode.OPERATION_ERROR, "更新用户额度失败");
         return app.getId();
     }
 

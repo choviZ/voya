@@ -2,7 +2,7 @@ spring:
   application:
     name: voya
   profiles:
-    active: prod
+    active: local
   # mysql
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver

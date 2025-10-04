@@ -13,7 +13,9 @@ public enum ErrorCode {
     FORBIDDEN_ERROR(40300, "禁止访问"),
     TOO_MANY_REQUEST(42900, "请求过于频繁"),
     SYSTEM_ERROR(50000, "系统内部异常"),
-    OPERATION_ERROR(50001, "操作失败");
+    OPERATION_ERROR(50001, "操作失败"),
+    NoCreateQuotaLeft(50002,"创建应用额度不足，申请增加额度或删除其他应用"),
+    NoCHatQuotaLeft(50003,"对话额度不足");
 
     /**
      * 状态码

@@ -18,9 +18,20 @@ import java.util.List;
 public interface UserService extends IService<User> {
 
     /**
+     * 更新用户余额
+     *
+     * @param type 额度类型
+     * @param user 修改的用户
+     * @param amount 要修改的额度默认加，如要减少，则传入负数
+     * @return 是否成功
+     */
+    boolean updateUserBalance(String type, User user, Integer amount);
+
+    /**
      * 用户注册
-     * @param userAccount 用户账户
-     * @param userPassword 用户密码
+     *
+     * @param userAccount   用户账户
+     * @param userPassword  用户密码
      * @param checkPassword 密码校验
      * @return 新用户 id
      */
@@ -55,6 +66,7 @@ public interface UserService extends IService<User> {
 
     /**
      * 获取加密密码
+     *
      * @param userPassword 用户密码
      * @return 加密后的密码
      */

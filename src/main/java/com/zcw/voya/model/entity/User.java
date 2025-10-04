@@ -73,6 +73,18 @@ public class User implements Serializable {
     private String userRole;
 
     /**
+     * 创建应用数量限制
+     */
+    @Column("createAppLimit")
+    private Integer createAppLimit;
+
+    /**
+     * AI对话次数限制
+     */
+    @Column("chatLimit")
+    private Integer chatLimit;
+
+    /**
      * 编辑时间
      */
     @Column("editTime")

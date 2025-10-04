@@ -3,6 +3,7 @@ package com.zcw.voya.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import com.mybatisflex.core.query.QueryWrapper;
+import com.mybatisflex.core.util.UpdateEntity;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.zcw.voya.exception.BusinessException;
 import com.zcw.voya.exception.ErrorCode;
@@ -10,6 +11,7 @@ import com.zcw.voya.exception.ThrowUtils;
 import com.zcw.voya.model.dto.user.UserQueryRequest;
 import com.zcw.voya.model.entity.User;
 import com.zcw.voya.mapper.UserMapper;
+import com.zcw.voya.model.enums.UserQuotaTypeEnum;
 import com.zcw.voya.model.enums.UserRoleEnum;
 import com.zcw.voya.model.vo.LoginUserVO;
 import com.zcw.voya.model.vo.UserVO;
@@ -32,7 +34,29 @@ import static com.zcw.voya.constant.UserConstant.USER_LOGIN_STATE;
  * @author zcw
  */
 @Service
-public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements UserService{
+public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
+
+    private final UserMapper userMapper;
+
+    public UserServiceImpl(UserMapper userMapper) {
+        this.userMapper = userMapper;
+    }
+
+    @Override
+    public boolean updateUserBalance(String type, User user, Integer amount) {
+        UserQuotaTypeEnum quotaTypeEnum = UserQuotaTypeEnum.getEnumByValue(type);
+        ThrowUtils.throwIf(quotaTypeEnum == null, ErrorCode.PARAMS_ERROR, "参数类型错误");
+        // 更新额度
+        User updateUser = UpdateEntity.of(User.class);
+        updateUser.setId(user.getId());
+        if (quotaTypeEnum == UserQuotaTypeEnum.CREATE_APP) {
+            updateUser.setCreateAppLimit(user.getCreateAppLimit() + amount);
+        } else if (quotaTypeEnum == UserQuotaTypeEnum.CHAT_APP) {
+            updateUser.setChatLimit(user.getChatLimit() + amount);
+        }
+        int update = userMapper.update(updateUser);
+        return update > 0;
+    }
 
     @Override
     public long userRegister(String userAccount, String userPassword, String checkPassword) {
@@ -42,7 +66,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         }
         // 检查是否重复
         QueryWrapper queryWrapper = new QueryWrapper();
-        queryWrapper.eq("userAccount",userAccount);
+        queryWrapper.eq("userAccount", userAccount);
         long number = this.mapper.selectCountByQuery(queryWrapper);
         if (number > 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号已存在");
@@ -68,8 +92,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         String encryptPassword = getEncryptPassword(userPassword);
         // 查询用户是否存在
         QueryWrapper queryWrapper = new QueryWrapper();
-        queryWrapper.eq("userAccount",userAccount);
-        queryWrapper.eq("userPassword",encryptPassword);
+        queryWrapper.eq("userAccount", userAccount);
+        queryWrapper.eq("userPassword", encryptPassword);
         User user = this.mapper.selectOneByQuery(queryWrapper);
         ThrowUtils.throwIf(user == null, ErrorCode.PARAMS_ERROR, "用户名不存在或密码错误");
         // 记录用户登录态
@@ -166,6 +190,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
 
     /**
      * 生成唯一的默认用户名，格式为"小黑子"+6位随机数
+     *
      * @return 唯一的用户名
      */
     private String generateUniqueUserName() {

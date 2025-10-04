@@ -39,6 +39,16 @@ public class LoginUserVO implements Serializable {
     private String userRole;
 
     /**
+     * 创建应用数量限制
+     */
+    private Integer createAppLimit;
+
+    /**
+     * AI对话次数限制
+     */
+    private Integer chatLimit;
+
+    /**
      * 创建时间
      */
     private LocalDateTime createTime;
