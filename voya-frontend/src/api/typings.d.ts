@@ -203,6 +203,8 @@ declare namespace API {
     userAvatar?: string
     userProfile?: string
     userRole?: string
+    createAppLimit?: number
+    chatLimit?: number
     createTime?: string
     updateTime?: string
   }
@@ -248,6 +250,8 @@ declare namespace API {
     userAvatar?: string
     userProfile?: string
     userRole?: string
+    createAppLimit?: number
+    chatLimit?: number
     editTime?: string
     createTime?: string
     updateTime?: string
@@ -300,6 +304,8 @@ declare namespace API {
     userAvatar?: string
     userProfile?: string
     userRole?: string
+    createAppLimit?: number
+    chatLimit?: number
     createTime?: string
   }
 }

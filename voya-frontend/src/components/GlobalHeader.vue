@@ -20,7 +20,7 @@
         />
       </a-col>
       <!-- 右侧：用户操作区域 -->
-      <a-col>
+      <a-col flex="260px">
         <div class="user-login-status">
           <div v-if="loginUserStore.loginUser.id">
             <a-dropdown>
@@ -30,6 +30,34 @@
               </a-space>
               <template #overlay>
                 <a-menu>
+                  <a-menu-item>
+                    <div class="usage-stats">
+                      <div class="usage-item">
+                        <div class="usage-label">应用数量</div>
+                          <a-progress
+                            :percent="appUsagePercent"
+                            :show-info="false"
+                            size="small"
+                            :stroke-color="appUsagePercent >= 90 ? '#ff4d4f' : '#1890ff'"
+                          />
+                          <div class="usage-count">
+                            {{ usedAppCount }}/{{ totalAppCount }}
+                          </div>
+                      </div>
+                      <div class="usage-item">
+                        <div class="usage-label">对话次数</div>
+                          <a-progress
+                            :percent="chatUsagePercent"
+                            :show-info="false"
+                            size="small"
+                            :stroke-color="chatUsagePercent >= 90 ? '#ff4d4f' : '#1890ff'"
+                          />
+                          <div class="usage-count">
+                            {{ usedChatCount }}/{{ totalChatCount }}
+                          </div>
+                      </div>
+                    </div>
+                  </a-menu-item>
                   <a-menu-item @click="doLogout">
                     <LogoutOutlined />
                     退出登录
@@ -59,6 +87,23 @@ const loginUserStore = useLoginUserStore()
 const router = useRouter()
 // 当前选中菜单
 const selectedKeys = ref<string[]>(['/'])
+
+// 默认应用和对话次数
+const DEFAULT_APP_COUNT = 10
+const DEFAULT_CHAT_COUNT = 100
+
+// 计算应用使用情况
+const totalAppCount = computed(() => DEFAULT_APP_COUNT)
+const remainingAppCount = computed(() => loginUserStore.loginUser.createAppLimit ?? DEFAULT_APP_COUNT)
+const usedAppCount = computed(() => totalAppCount.value - remainingAppCount.value)
+const appUsagePercent = computed(() => Math.round((usedAppCount.value / totalAppCount.value) * 100))
+
+// 计算对话使用情况
+const totalChatCount = computed(() => DEFAULT_CHAT_COUNT)
+const remainingChatCount = computed(() => loginUserStore.loginUser.chatLimit ?? DEFAULT_CHAT_COUNT)
+const usedChatCount = computed(() => totalChatCount.value - remainingChatCount.value)
+const chatUsagePercent = computed(() => Math.round((usedChatCount.value / totalChatCount.value) * 100))
+
 // 监听路由变化，更新当前选中菜单
 router.afterEach((to, from, next) => {
   selectedKeys.value = [to.path]
@@ -86,7 +131,7 @@ const originItems = [
     key: '/admin/chatManage',
     label: '对话管理',
     title: '对话管理',
-  }
+  },
 ]
 
 // 过滤菜单项
@@ -156,5 +201,31 @@ const doLogout = async () => {
 
 .ant-menu-horizontal {
   border-bottom: none !important;
+}
+
+.usage-stats {
+  min-width: 200px;
+  padding: 4px 0;
+}
+
+.usage-item {
+  margin-bottom: 4px;
+}
+
+.usage-item:last-child {
+  margin-bottom: 0;
+}
+
+.usage-label {
+  font-size: 12px;
+  margin-bottom: 2px;
+  color: #666;
+}
+
+.usage-count {
+  font-size: 11px;
+  color: #999;
+  text-align: right;
+  margin-top: 1px;
 }
 </style>
